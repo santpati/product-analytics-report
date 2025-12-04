@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Desk Booking Features - Pendo Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: linear-gradient(135deg, #0d0d0d 0%, #1a1a2e 50%, #16213e 100%);
+            min-height: 100vh;
+            padding: 30px;
+            color: #fff;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .header h1 {
+            font-size: 2.5em;
+            background: linear-gradient(135deg, #e94560, #00b4d8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+        .header .subtitle {
+            color: #888;
+            font-size: 1.1em;
+        }
+        .header .account {
+            color: #00b4d8;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+        .stats-bar {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+        }
+        .stat {
+            text-align: center;
+            background: rgba(255,255,255,0.05);
+            padding: 20px 40px;
+            border-radius: 15px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .stat-value {
+            font-size: 2.5em;
+            font-weight: 700;
+            color: #e94560;
+        }
+        .stat-label {
+            color: #888;
+            font-size: 0.85em;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-top: 5px;
+        }
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        .chart-card {
+            background: rgba(255,255,255,0.03);
+            border-radius: 20px;
+            padding: 25px;
+            border: 1px solid rgba(255,255,255,0.08);
+            transition: all 0.3s ease;
+        }
+        .chart-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(233, 69, 96, 0.3);
+            box-shadow: 0 20px 40px rgba(233, 69, 96, 0.1);
+        }
+        .chart-title {
+            font-size: 0.95em;
+            color: #fff;
+            margin-bottom: 10px;
+            font-weight: 600;
+            text-align: center;
+            min-height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .chart-total {
+            font-size: 2.2em;
+            font-weight: 700;
+            color: #00b4d8;
+            text-align: center;
+        }
+        .chart-label {
+            color: #666;
+            font-size: 0.75em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        .chart-wrapper {
+            height: 200px;
+            position: relative;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 50px;
+            color: #555;
+            font-size: 0.85em;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📊 Desk Booking Features Dashboard</h1>
+        <div class="subtitle">Last 30 Days Feature Click Analytics</div>
+        <div class="account">Account: 20482_ciscospaces.app</div>
+    </div>
+    
+    <div class="stats-bar">
+        <div class="stat">
+            <div class="stat-value">267</div>
+            <div class="stat-label">Total Clicks</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value">7</div>
+            <div class="stat-label">Active Features</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value">17</div>
+            <div class="stat-label">Total Features</div>
+        </div>
+    </div>
+    
+    <div class="charts-grid">
+        
+        <div class="chart-card">
+            <div class="chart-title">Desk Booking -> Confirm booking</div>
+            <div class="chart-total">94</div>
+            <div class="chart-label">Total Clicks</div>
+            <div class="chart-wrapper">
+                <canvas id="chart_0"></canvas>
+            </div>
+        </div>
+    
+        <div class="chart-card">
+            <div class="chart-title">WebApp -Search</div>
+            <div class="chart-total">42</div>
+            <div class="chart-label">Total Clicks</div>
+            <div class="chart-wrapper">
+                <canvas id="chart_1"></canvas>
+            </div>
+        </div>
+    
+        <div class="chart-card">
+            <div class="chart-title">Desk Booking - Logout</div>
+            <div class="chart-total">38</div>
+            <div class="chart-label">Total Clicks</div>
+            <div class="chart-wrapper">
+                <canvas id="chart_2"></canvas>
+            </div>
+        </div>
+    
+        <div class="chart-card">
+            <div class="chart-title">Desk Booking - Clicked Button > Hold Room</div>
+            <div class="chart-total">32</div>
+            <div class="chart-label">Total Clicks</div>
+            <div class="chart-wrapper">
+                <canvas id="chart_3"></canvas>
+            </div>
+        </div>
+    
+        <div class="chart-card">
+            <div class="chart-title">Desk Booking - Clicked Button > Confirm > Cancel</div>
+            <div class="chart-total">31</div>
+            <div class="chart-label">Total Clicks</div>
+            <div class="chart-wrapper">
+                <canvas id="chart_4"></canvas>
+            </div>
+        </div>
+    
+        <div class="chart-card">
+            <div class="chart-title">Desk Booking -> Share</div>
+            <div class="chart-total">25</div>
+            <div class="chart-label">Total Clicks</div>
+            <div class="chart-wrapper">
+                <canvas id="chart_5"></canvas>
+            </div>
+        </div>
+    
+        <div class="chart-card">
+            <div class="chart-title">WebApp > Search > Show only this floor toggle</div>
+            <div class="chart-total">5</div>
+            <div class="chart-label">Total Clicks</div>
+            <div class="chart-wrapper">
+                <canvas id="chart_6"></canvas>
+            </div>
+        </div>
+    
+    </div>
+    
+    <div class="footer">
+        Generated from Pendo API • Data aggregated by week
+    </div>
+    
+    <script>
+        
+        new Chart(document.getElementById('chart_0').getContext('2d'), {
+            type: 'pie',
+            data: {
+                labels: ["W44", "W45", "W46", "W47", "W48"],
+                datasets: [{
+                    data: [2, 31, 21, 27, 13],
+                    backgroundColor: ["#e94560", "#0f3460", "#00b4d8", "#90be6d", "#f77f00"],
+                    borderColor: '#1a1a2e',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: '#ccc',
+                            padding: 10,
+                            font: { size: 11 }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const value = context.raw;
+                                const pct = ((value / total) * 100).toFixed(1);
+                                return context.label + ': ' + value + ' (' + pct + '%)';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    
+        new Chart(document.getElementById('chart_1').getContext('2d'), {
+            type: 'pie',
+            data: {
+                labels: ["W44", "W45", "W46", "W47", "W48"],
+                datasets: [{
+                    data: [4, 18, 8, 7, 5],
+                    backgroundColor: ["#e94560", "#0f3460", "#00b4d8", "#90be6d", "#f77f00"],
+                    borderColor: '#1a1a2e',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: '#ccc',
+                            padding: 10,
+                            font: { size: 11 }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const value = context.raw;
+                                const pct = ((value / total) * 100).toFixed(1);
+                                return context.label + ': ' + value + ' (' + pct + '%)';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    
+        new Chart(document.getElementById('chart_2').getContext('2d'), {
+            type: 'pie',
+            data: {
+                labels: ["W44", "W45", "W46", "W47", "W48"],
+                datasets: [{
+                    data: [2, 11, 8, 10, 7],
+                    backgroundColor: ["#e94560", "#0f3460", "#00b4d8", "#90be6d", "#f77f00"],
+                    borderColor: '#1a1a2e',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: '#ccc',
+                            padding: 10,
+                            font: { size: 11 }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const value = context.raw;
+                                const pct = ((value / total) * 100).toFixed(1);
+                                return context.label + ': ' + value + ' (' + pct + '%)';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    
+        new Chart(document.getElementById('chart_3').getContext('2d'), {
+            type: 'pie',
+            data: {
+                labels: ["W45", "W46", "W47", "W48"],
+                datasets: [{
+                    data: [9, 13, 6, 4],
+                    backgroundColor: ["#e94560", "#0f3460", "#00b4d8", "#90be6d"],
+                    borderColor: '#1a1a2e',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: '#ccc',
+                            padding: 10,
+                            font: { size: 11 }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const value = context.raw;
+                                const pct = ((value / total) * 100).toFixed(1);
+                                return context.label + ': ' + value + ' (' + pct + '%)';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    
+        new Chart(document.getElementById('chart_4').getContext('2d'), {
+            type: 'pie',
+            data: {
+                labels: ["W44", "W45", "W46", "W47", "W48"],
+                datasets: [{
+                    data: [1, 16, 6, 5, 3],
+                    backgroundColor: ["#e94560", "#0f3460", "#00b4d8", "#90be6d", "#f77f00"],
+                    borderColor: '#1a1a2e',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: '#ccc',
+                            padding: 10,
+                            font: { size: 11 }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const value = context.raw;
+                                const pct = ((value / total) * 100).toFixed(1);
+                                return context.label + ': ' + value + ' (' + pct + '%)';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    
+        new Chart(document.getElementById('chart_5').getContext('2d'), {
+            type: 'pie',
+            data: {
+                labels: ["W44", "W45", "W46", "W47", "W48"],
+                datasets: [{
+                    data: [1, 6, 6, 9, 3],
+                    backgroundColor: ["#e94560", "#0f3460", "#00b4d8", "#90be6d", "#f77f00"],
+                    borderColor: '#1a1a2e',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: '#ccc',
+                            padding: 10,
+                            font: { size: 11 }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const value = context.raw;
+                                const pct = ((value / total) * 100).toFixed(1);
+                                return context.label + ': ' + value + ' (' + pct + '%)';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    
+        new Chart(document.getElementById('chart_6').getContext('2d'), {
+            type: 'pie',
+            data: {
+                labels: ["W45", "W47"],
+                datasets: [{
+                    data: [4, 1],
+                    backgroundColor: ["#e94560", "#0f3460"],
+                    borderColor: '#1a1a2e',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: '#ccc',
+                            padding: 10,
+                            font: { size: 11 }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const value = context.raw;
+                                const pct = ((value / total) * 100).toFixed(1);
+                                return context.label + ': ' + value + ' (' + pct + '%)';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    
+    </script>
+</body>
+</html>

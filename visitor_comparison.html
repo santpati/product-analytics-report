@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Unique vs Repeat Visitors - Desk Booking</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: #0a0a0f;
+            min-height: 100vh;
+            padding: 40px;
+            color: #fff;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+        .header h1 {
+            font-size: 2.5em;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 10px;
+        }
+        .header h1 span {
+            background: linear-gradient(90deg, #00f5a0, #00d9f5);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .header .meta {
+            color: #666;
+            font-size: 1em;
+        }
+        .header .account {
+            font-family: 'JetBrains Mono', monospace;
+            color: #00d9f5;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+        
+        .main-card {
+            background: linear-gradient(145deg, #12121a 0%, #1a1a25 100%);
+            border-radius: 30px;
+            padding: 50px;
+            border: 1px solid #2a2a35;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.5);
+        }
+        
+        .chart-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 50px;
+            align-items: center;
+        }
+        
+        .chart-wrapper {
+            height: 350px;
+            position: relative;
+        }
+        
+        .stats-panel {
+            padding: 20px;
+        }
+        
+        .total-stat {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 30px;
+            background: rgba(0, 245, 160, 0.05);
+            border-radius: 20px;
+            border: 1px solid rgba(0, 245, 160, 0.2);
+        }
+        .total-stat .value {
+            font-size: 4em;
+            font-weight: 700;
+            background: linear-gradient(90deg, #00f5a0, #00d9f5);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .total-stat .label {
+            color: #888;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-top: 5px;
+        }
+        
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .comparison-item {
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+        }
+        .comparison-item.unique {
+            background: rgba(0, 245, 160, 0.1);
+            border: 1px solid rgba(0, 245, 160, 0.3);
+        }
+        .comparison-item.repeat {
+            background: rgba(0, 217, 245, 0.1);
+            border: 1px solid rgba(0, 217, 245, 0.3);
+        }
+        .comparison-item .count {
+            font-size: 3em;
+            font-weight: 700;
+        }
+        .comparison-item.unique .count { color: #00f5a0; }
+        .comparison-item.repeat .count { color: #00d9f5; }
+        .comparison-item .percent {
+            font-size: 1.2em;
+            color: #888;
+            margin: 5px 0;
+        }
+        .comparison-item .name {
+            color: #aaa;
+            font-size: 0.85em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .top-bookers {
+            margin-top: 50px;
+            padding-top: 40px;
+            border-top: 1px solid #2a2a35;
+        }
+        .top-bookers h3 {
+            text-align: center;
+            color: #fff;
+            font-size: 1.3em;
+            margin-bottom: 25px;
+        }
+        .bookers-list {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
+        }
+        .booker {
+            background: rgba(255,255,255,0.03);
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        .booker .rank {
+            font-size: 0.75em;
+            color: #555;
+            margin-bottom: 5px;
+        }
+        .booker .name {
+            font-size: 0.8em;
+            color: #aaa;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .booker .bookings {
+            font-size: 1.5em;
+            font-weight: 700;
+            color: #00d9f5;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏢 <span>Unique vs Repeat</span> Visitors</h1>
+            <div class="meta">Desk Booking • Last 30 Days</div>
+            <div class="account">20482_ciscospaces.app</div>
+        </div>
+        
+        <div class="main-card">
+            <div class="chart-section">
+                <div class="chart-wrapper">
+                    <canvas id="pieChart"></canvas>
+                </div>
+                
+                <div class="stats-panel">
+                    <div class="total-stat">
+                        <div class="value">37</div>
+                        <div class="label">Total Unique Visitors</div>
+                    </div>
+                    
+                    <div class="comparison">
+                        <div class="comparison-item unique">
+                            <div class="count">18</div>
+                            <div class="percent">48.6%</div>
+                            <div class="name">Unique Visitors</div>
+                            <div style="color: #666; font-size: 0.75em; margin-top: 5px;">(Booked 1 time)</div>
+                        </div>
+                        <div class="comparison-item repeat">
+                            <div class="count">19</div>
+                            <div class="percent">51.4%</div>
+                            <div class="name">Repeat Visitors</div>
+                            <div style="color: #666; font-size: 0.75em; margin-top: 5px;">(Booked &gt;1 time)</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="top-bookers">
+                <h3>🏆 Top 10 Most Active Bookers</h3>
+                <div class="bookers-list">
+
+                    <div class="booker">
+                        <div class="rank">#1</div>
+                        <div class="name" title="slongia@cisco.com_20482_ciscospaces.app">slongia@cisco.com</div>
+                        <div class="bookings">10</div>
+                    </div>
+
+                    <div class="booker">
+                        <div class="rank">#2</div>
+                        <div class="name" title="denadams@cisco.com_20482_ciscospaces.app">denadams@cisco.com</div>
+                        <div class="bookings">9</div>
+                    </div>
+
+                    <div class="booker">
+                        <div class="rank">#3</div>
+                        <div class="name" title="santpati@cisco.com_20482_ciscospaces.app">santpati@cisco.com</div>
+                        <div class="bookings">7</div>
+                    </div>
+
+                    <div class="booker">
+                        <div class="rank">#4</div>
+                        <div class="name" title="luhanson@cisco.com_20482_ciscospaces.app">luhanson@cisco.com</div>
+                        <div class="bookings">6</div>
+                    </div>
+
+                    <div class="booker">
+                        <div class="rank">#5</div>
+                        <div class="name" title="visbhatt@cisco.com_20482_ciscospaces.app">visbhatt@cisco.com</div>
+                        <div class="bookings">6</div>
+                    </div>
+
+                    <div class="booker">
+                        <div class="rank">#6</div>
+                        <div class="name" title="shadougl@cisco.com_20482_ciscospaces.app">shadougl@cisco.com</div>
+                        <div class="bookings">5</div>
+                    </div>
+
+                    <div class="booker">
+                        <div class="rank">#7</div>
+                        <div class="name" title="viborkar@cisco.com_20482_ciscospaces.app">viborkar@cisco.com</div>
+                        <div class="bookings">5</div>
+                    </div>
+
+                    <div class="booker">
+                        <div class="rank">#8</div>
+                        <div class="name" title="deayoung@cisco.com_20482_ciscospaces.app">deayoung@cisco.com</div>
+                        <div class="bookings">4</div>
+                    </div>
+
+                    <div class="booker">
+                        <div class="rank">#9</div>
+                        <div class="name" title="meversma@cisco.com_20482_ciscospaces.app">meversma@cisco.com</div>
+                        <div class="bookings">4</div>
+                    </div>
+
+                    <div class="booker">
+                        <div class="rank">#10</div>
+                        <div class="name" title="avilling@cisco.com_20482_ciscospaces.app">avilling@cisco.com</div>
+                        <div class="bookings">3</div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        new Chart(document.getElementById('pieChart').getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Unique Visitors (1x)', 'Repeat Visitors (>1x)'],
+                datasets: [{
+                    data: [18, 19],
+                    backgroundColor: ['#00f5a0', '#00d9f5'],
+                    borderColor: '#12121a',
+                    borderWidth: 4,
+                    hoverOffset: 15
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '60%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: '#888',
+                            padding: 20,
+                            font: { size: 13, family: 'DM Sans' }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: '#1a1a25',
+                        titleColor: '#fff',
+                        bodyColor: '#aaa',
+                        borderColor: '#2a2a35',
+                        borderWidth: 1,
+                        padding: 15,
+                        callbacks: {
+                            label: function(context) {
+                                const total = 37;
+                                const value = context.raw;
+                                const pct = ((value / total) * 100).toFixed(1);
+                                return context.label + ': ' + value + ' visitors (' + pct + '%)';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

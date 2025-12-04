@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Pendo Feature Clicks - Pie Chart</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            background: rgba(255,255,255,0.95);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 700px;
+            width: 100%;
+        }
+        h1 {
+            text-align: center;
+            color: #1a1a2e;
+            margin-bottom: 5px;
+            font-size: 1.8em;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1em;
+        }
+        .total {
+            text-align: center;
+            font-size: 2.5em;
+            color: #e94560;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+        .total-label {
+            text-align: center;
+            color: #888;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .chart-container {
+            position: relative;
+            height: 350px;
+            margin: 30px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🖱️ Desk Booking → Share</h1>
+        <div class="subtitle">Account: 20482_ciscospaces.app | Last 30 Days</div>
+        <div class="total-label">Total Clicks</div>
+        <div class="total">25</div>
+        <div class="chart-container">
+            <canvas id="pieChart"></canvas>
+        </div>
+    </div>
+    <script>
+        const ctx = document.getElementById('pieChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: ["Week 44 (Nov 02)", "Week 45 (Nov 03)", "Week 45 (Nov 04)", "Week 45 (Nov 05)", "Week 46 (Nov 10)", "Week 46 (Nov 11)", "Week 46 (Nov 12)", "Week 46 (Nov 13)", "Week 47 (Nov 19)", "Week 47 (Nov 20)", "Week 47 (Nov 23)", "Week 48 (Nov 24)", "Week 48 (Nov 25)", "Week 48 (Nov 27)"],
+                datasets: [{
+                    data: [1, 2, 2, 2, 1, 2, 1, 2, 3, 4, 2, 1, 1, 1],
+                    backgroundColor: [
+                        '#e94560',
+                        '#0f3460',
+                        '#16213e',
+                        '#533483',
+                        '#00b4d8',
+                        '#90be6d'
+                    ],
+                    borderColor: '#fff',
+                    borderWidth: 3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 20,
+                            font: { size: 14 }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.raw;
+                                const percentage = ((value / 25) * 100).toFixed(1);
+                                return context.label + ': ' + value + ' clicks (' + percentage + '%)';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Indoor Navigation - Search Terms | Last 30 Days</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            padding: 40px;
+            color: #fff;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .header h1 {
+            font-size: 2.5em;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        .header h1 .highlight {
+            background: linear-gradient(90deg, #00d9ff, #00ff88);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .header .subtitle {
+            color: #888;
+            font-size: 1.1em;
+        }
+        .header .date {
+            color: #00d9ff;
+            font-size: 0.9em;
+            margin-top: 10px;
+        }
+        
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+        .stat-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .stat-card .value {
+            font-size: 3em;
+            font-weight: 700;
+            background: linear-gradient(90deg, #00d9ff, #00ff88);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .stat-card .label {
+            color: #888;
+            font-size: 0.9em;
+            margin-top: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .chart-container {
+            background: rgba(255,255,255,0.03);
+            border-radius: 25px;
+            padding: 40px;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        .chart-container h2 {
+            color: #fff;
+            font-size: 1.3em;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .chart-wrapper {
+            height: 500px;
+            position: relative;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            color: #555;
+            font-size: 0.85em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 <span class="highlight">Indoor Navigation</span> - Search Activity</h1>
+            <div class="subtitle">Search Events by Account | Last 30 Days</div>
+            <div class="date">Generated: December 02, 2025</div>
+        </div>
+        
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="value">3,393</div>
+                <div class="label">Total Searches</div>
+            </div>
+            <div class="stat-card">
+                <div class="value">15</div>
+                <div class="label">Active Accounts</div>
+            </div>
+            <div class="stat-card">
+                <div class="value">113</div>
+                <div class="label">Avg Daily Searches</div>
+            </div>
+        </div>
+        
+        <div class="chart-container">
+            <h2>📊 Search Events by Account (Top 15)</h2>
+            <div class="chart-wrapper">
+                <canvas id="searchChart"></canvas>
+            </div>
+        </div>
+        
+        <div class="footer">
+            Data from Pendo Analytics • Indoor Wayfinding Search Events
+        </div>
+    </div>
+    
+    <script>
+        const ctx = document.getElementById('searchChart').getContext('2d');
+        
+        // Create gradient
+        const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+        gradient.addColorStop(0, 'rgba(0, 217, 255, 0.8)');
+        gradient.addColorStop(1, 'rgba(0, 255, 136, 0.8)');
+        
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ["263257", "70042", "18005", "363254", "14144", "17418", "13191", "20482", "363252", "18899", "17783", "15868", "263256", "363250", "14387"],
+                datasets: [{
+                    label: 'Search Events',
+                    data: [3129, 39, 38, 38, 32, 26, 25, 24, 15, 7, 4, 4, 4, 4, 4],
+                    backgroundColor: gradient,
+                    borderColor: 'rgba(0, 217, 255, 1)',
+                    borderWidth: 1,
+                    borderRadius: 8,
+                    barThickness: 40
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: '#1a1a2e',
+                        titleColor: '#fff',
+                        bodyColor: '#00d9ff',
+                        borderColor: 'rgba(0, 217, 255, 0.3)',
+                        borderWidth: 1,
+                        padding: 15,
+                        displayColors: false,
+                        callbacks: {
+                            label: function(context) {
+                                const total = 3393;
+                                const value = context.raw;
+                                const pct = ((value / total) * 100).toFixed(1);
+                                return value.toLocaleString() + ' searches (' + pct + '%)';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(255,255,255,0.05)'
+                        },
+                        ticks: {
+                            color: '#888',
+                            font: { size: 12 }
+                        }
+                    },
+                    y: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            color: '#fff',
+                            font: { size: 13, weight: '500' },
+                            padding: 10
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
