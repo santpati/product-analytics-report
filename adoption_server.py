@@ -118,7 +118,7 @@ class AdoptionHandler(http.server.SimpleHTTPRequestHandler):
         print(f"[{self.log_date_time_string()}] {args[0]}")
 
 def main():
-    os.chdir('/Users/visbhatt/Documents/code/sample-app')
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
     
     with socketserver.TCPServer(("", PORT), AdoptionHandler) as httpd:
         print(f"""

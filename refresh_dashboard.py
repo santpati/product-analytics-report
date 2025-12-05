@@ -6,6 +6,7 @@ Run hourly via cron/launchd to keep data current.
 """
 
 import json
+import os
 import subprocess
 import time
 from datetime import datetime, timedelta
@@ -13,7 +14,7 @@ from datetime import datetime, timedelta
 API_KEY = "7d0eb12c-2c01-406a-9614-39a27227ca72.us"
 DESK_ACCOUNT = "20482_ciscospaces.app"
 NAV_ACCOUNT = "20482_wf.ciscospaces.io"
-OUTPUT_FILE = "/Users/visbhatt/Documents/code/sample-app/desk_booking_slide.html"
+OUTPUT_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "desk_booking_slide.html")
 
 def fetch_aggregation(pipeline):
     payload = json.dumps({
