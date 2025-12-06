@@ -265,22 +265,6 @@ ssh -i "Santosh-Demo.pem" ec2-user@ec2-3-236-4-188.compute-1.amazonaws.com "cd p
 http://ec2-3-236-4-188.compute-1.amazonaws.com:8080
 ```
 
-### First-Time EC2 Setup
-
-```bash
-# SSH into your instance
-ssh -i "Santosh-Demo.pem" ec2-user@ec2-3-236-4-188.compute-1.amazonaws.com
-
-# Install git (if not installed)
-sudo yum install -y git
-
-# Clone and setup
-git clone https://github.com/santpati/product-analytics-report.git
-cd product-analytics-report
-chmod +x setup-ec2.sh deploy.sh
-./setup-ec2.sh
-```
-
 For detailed deployment instructions, troubleshooting, and architecture details, see **[DEPLOYMENT.md](DEPLOYMENT.md)**.
 
 ---
