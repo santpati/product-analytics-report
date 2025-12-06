@@ -2,11 +2,69 @@
 
 Deploy the Product Analytics Dashboard to your AWS EC2 instance.
 
-## Prerequisites
+---
+
+## Quick Deploy (After Initial Setup)
+
+> **Note:** You need the `Santosh-Demo.pem` SSH key file to access the EC2 instance. Contact **santpati@cisco.com** to obtain this file.
+
+Once your EC2 is set up, use this simple workflow to deploy changes:
+
+### Step 1: Commit and push your local changes
+
+```bash
+cd /Users/santpati/Desktop/Folders/AI/git-repo/product-analytics-report
+git add .
+git commit -m "Your change description"
+git push origin main
+```
+
+### Step 2: Deploy to AWS (one command)
+
+```bash
+ssh -i "Santosh-Demo.pem" ec2-user@ec2-3-236-4-188.compute-1.amazonaws.com "cd product-analytics-report && ./deploy.sh"
+```
+
+That's it! ✅ View your dashboard at: **http://ec2-3-236-4-188.compute-1.amazonaws.com:8080**
+
+### Optional: One-Click Deploy Script for Mac
+
+Create a local script for even easier deploys:
+
+```bash
+# Create the script (run once)
+cat > ~/deploy-to-aws.sh << 'EOF'
+#!/bin/bash
+cd /Users/santpati/Desktop/Folders/AI/git-repo/product-analytics-report
+
+echo "📤 Pushing to GitHub..."
+git add .
+git commit -m "${1:-Update dashboard}" 
+git push origin main
+
+echo "🚀 Deploying to AWS..."
+ssh -i "Santosh-Demo.pem" ec2-user@ec2-3-236-4-188.compute-1.amazonaws.com "cd product-analytics-report && ./deploy.sh"
+
+echo "✅ Done! View at: http://ec2-3-236-4-188.compute-1.amazonaws.com:8080"
+EOF
+
+chmod +x ~/deploy-to-aws.sh
+```
+
+Then deploy anytime with:
+
+```bash
+~/deploy-to-aws.sh "Added new feature"
+```
+
+---
+
+## Prerequisites (First-Time Setup)
 
 - AWS EC2 instance (t3.micro or larger) running Amazon Linux 2
 - SSH access to the instance
 - Security Group configured to allow inbound traffic on port 8080
+- **SSH Key File (`Santosh-Demo.pem`)** - Contact **santpati@cisco.com** to obtain this file
 
 ---
 
