@@ -238,7 +238,54 @@ sample-app/
 - Consider using environment-specific credentials
 - Regularly rotate your app passwords
 
+---
+
+## AWS EC2 Deployment
+
+You can deploy this dashboard to AWS EC2 for team-wide access.
+
+### Quick Deploy (After Initial Setup)
+
+> **Note:** You need the `Santosh-Demo.pem` SSH key file. Contact **santpati@cisco.com** to obtain this file.
+
+**Step 1:** Commit and push your local changes
+```bash
+git add .
+git commit -m "Your change description"
+git push origin main
+```
+
+**Step 2:** Deploy to AWS (one command)
+```bash
+ssh -i "Santosh-Demo.pem" ec2-user@ec2-3-236-4-188.compute-1.amazonaws.com "cd product-analytics-report && ./deploy.sh"
+```
+
+**Step 3:** Access your dashboard at:
+```
+http://ec2-3-236-4-188.compute-1.amazonaws.com:8080
+```
+
+### First-Time EC2 Setup
+
+```bash
+# SSH into your instance
+ssh -i "Santosh-Demo.pem" ec2-user@ec2-3-236-4-188.compute-1.amazonaws.com
+
+# Install git (if not installed)
+sudo yum install -y git
+
+# Clone and setup
+git clone https://github.com/santpati/product-analytics-report.git
+cd product-analytics-report
+chmod +x setup-ec2.sh deploy.sh
+./setup-ec2.sh
+```
+
+For detailed deployment instructions, troubleshooting, and architecture details, see **[DEPLOYMENT.md](DEPLOYMENT.md)**.
+
+---
+
 ## Support
 
-For issues or questions, contact: visbhatt@cisco.com
+For issues or questions, contact: santpati@cisco.com , visbhatt@cisco.com
 
