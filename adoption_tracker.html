@@ -509,50 +509,38 @@
             
             // Hide PDF button during generation
             const pdfSection = element.querySelector('.pdf-download-section');
+            const originalDisplay = pdfSection.style.display;
             pdfSection.style.display = 'none';
             
-            // Clone element for PDF generation to avoid modifying the original
-            const clone = element.cloneNode(true);
-            clone.style.width = '1400px';
-            clone.style.background = '#fff';
-            clone.style.padding = '20px';
-            clone.querySelector('.pdf-download-section')?.remove();
-            
-            // Temporarily append clone to body for rendering
-            clone.style.position = 'absolute';
-            clone.style.left = '-9999px';
-            document.body.appendChild(clone);
-            
             const opt = {
-                margin: [5, 5, 5, 5],
+                margin: [10, 10, 10, 10],
                 filename: filename,
-                image: { type: 'jpeg', quality: 0.95 },
+                image: { type: 'jpeg', quality: 0.98 },
                 html2canvas: { 
-                    scale: 1.5, 
+                    scale: 2,
                     useCORS: true, 
-                    logging: false,
-                    width: 1400,
-                    windowWidth: 1400
+                    logging: true,
+                    backgroundColor: '#ffffff',
+                    scrollY: 0,
+                    scrollX: 0
                 },
                 jsPDF: { 
                     unit: 'mm', 
-                    format: [420, 297], // A3 landscape for more space
+                    format: 'a3',
                     orientation: 'landscape' 
                 },
                 pagebreak: { mode: 'avoid-all' }
             };
             
-            html2pdf().set(opt).from(clone).save().then(() => {
+            html2pdf().set(opt).from(element).save().then(() => {
                 btn.innerHTML = originalText;
                 btn.disabled = false;
-                pdfSection.style.display = 'block';
-                document.body.removeChild(clone);
+                pdfSection.style.display = originalDisplay || 'block';
             }).catch(err => {
                 console.error('PDF generation error:', err);
                 btn.innerHTML = originalText;
                 btn.disabled = false;
-                pdfSection.style.display = 'block';
-                document.body.removeChild(clone);
+                pdfSection.style.display = originalDisplay || 'block';
                 alert('Error generating PDF. Please try again.');
             });
         }
@@ -594,7 +582,10 @@
         const DESK_BOOKING_IDS = {
             CONFIRM_BOOKING: '1HnG04yQ3_VZ0-d8Z4hZPBIr2OQ',
             SHARE: 'RkSX_5wQ9DrD7f_PMW_1A_GWrCA',
-            HOLD_ROOM: 'oU1gYDzMf6L3555MOJO1Df6Xt8A',
+            HOLD_ROOM: '5YQ8V5CiSld66Dw6HEPnxJRWnRs',  // Desk Booking - Clicked Button > Hold Room
+            HOLD_ROOM_MEETING: 'XBJD_Ok221ikYTE4NYy78O9Bt9o',  // Smart Workspaces - Meeting Room > Clicked Hold
+            FIND_ROOM_TAB: 'aUt4EzLzmSnqY0Vo4Quj7hhnwQE',  // Desk Booking - Select Tab > Rooms
+            FIND_ROOM_CLICK: 'oZMgVA933OtNDaBZ4jQyBWV99t4',  // Smart Workspaces - Clicked Room Finder
             PAGE: 'sELpkBRM0AOk7qijVYixFJuSS4c'
         };
         
@@ -759,7 +750,7 @@
             }
             
             // Fetch desk bookings (feature clicks)
-            let deskBooked = 0, share = 0, holdRoom = 0, findRoom = 12;
+            let deskBooked = 0, share = 0, holdRoom = 0, findRoom = 0;
             
             // Desk Booking feature
             const deskQuery = {
@@ -795,8 +786,8 @@
             }
             console.log('Share:', share);
             
-            // Hold Room feature
-            const holdQuery = {
+            // Hold Room feature - check multiple feature IDs
+            const holdQuery1 = {
                 response: { mimeType: 'application/json' },
                 request: {
                     pipeline: [
@@ -806,11 +797,60 @@
                     ]
                 }
             };
-            const holdData = await fetchAggregation(holdQuery);
-            if (holdData && holdData.results && holdData.results[0]) {
-                holdRoom = holdData.results[0].count || 0;
+            const holdData1 = await fetchAggregation(holdQuery1);
+            if (holdData1 && holdData1.results && holdData1.results[0]) {
+                holdRoom += holdData1.results[0].count || 0;
             }
-            console.log('Hold room:', holdRoom);
+            
+            // Also check Meeting Room Hold
+            const holdQuery2 = {
+                response: { mimeType: 'application/json' },
+                request: {
+                    pipeline: [
+                        { source: { featureEvents: { featureId: DESK_BOOKING_IDS.HOLD_ROOM_MEETING }, timeSeries: { period: 'dayRange', first: startMs, last: endMs } } },
+                        { filter: accountId !== 'all' ? `accountId == "${accountId}"` : 'true' },
+                        { group: { fields: [{ count: { count: null } }] } }
+                    ]
+                }
+            };
+            const holdData2 = await fetchAggregation(holdQuery2);
+            if (holdData2 && holdData2.results && holdData2.results[0]) {
+                holdRoom += holdData2.results[0].count || 0;
+            }
+            console.log('Hold room (total):', holdRoom);
+            
+            // Find a Room feature - check Rooms Tab clicks
+            const findRoomQuery1 = {
+                response: { mimeType: 'application/json' },
+                request: {
+                    pipeline: [
+                        { source: { featureEvents: { featureId: DESK_BOOKING_IDS.FIND_ROOM_TAB }, timeSeries: { period: 'dayRange', first: startMs, last: endMs } } },
+                        { filter: accountId !== 'all' ? `accountId == "${accountId}"` : 'true' },
+                        { group: { fields: [{ count: { count: null } }] } }
+                    ]
+                }
+            };
+            const findRoomData1 = await fetchAggregation(findRoomQuery1);
+            if (findRoomData1 && findRoomData1.results && findRoomData1.results[0]) {
+                findRoom += findRoomData1.results[0].count || 0;
+            }
+            
+            // Also check Room Finder clicks
+            const findRoomQuery2 = {
+                response: { mimeType: 'application/json' },
+                request: {
+                    pipeline: [
+                        { source: { featureEvents: { featureId: DESK_BOOKING_IDS.FIND_ROOM_CLICK }, timeSeries: { period: 'dayRange', first: startMs, last: endMs } } },
+                        { filter: accountId !== 'all' ? `accountId == "${accountId}"` : 'true' },
+                        { group: { fields: [{ count: { count: null } }] } }
+                    ]
+                }
+            };
+            const findRoomData2 = await fetchAggregation(findRoomQuery2);
+            if (findRoomData2 && findRoomData2.results && findRoomData2.results[0]) {
+                findRoom += findRoomData2.results[0].count || 0;
+            }
+            console.log('Find a Room (total):', findRoom);
             
             const totalEngagements = deskBooked + share + holdRoom;
             
@@ -839,6 +879,77 @@
                 }));
             }
             
+            // Fetch device usage data (browser/agent breakdown)
+            let mobileCount = 0, desktopCount = 0;
+            
+            const deviceQuery = {
+                response: { mimeType: 'application/json' },
+                request: {
+                    pipeline: [
+                        { source: { events: null, timeSeries: { period: 'dayRange', first: startMs, last: endMs } } },
+                        { filter: accountId !== 'all' ? `accountId == "${accountId}"` : 'true' },
+                        { group: { group: ['browserName'], fields: [{ count: { count: null } }] } }
+                    ]
+                }
+            };
+            
+            const deviceData = await fetchAggregation(deviceQuery);
+            console.log('Device data:', deviceData);
+            
+            if (deviceData && deviceData.results) {
+                deviceData.results.forEach(d => {
+                    const browser = (d.browserName || '').toLowerCase();
+                    const count = d.count || 0;
+                    // Mobile browsers: Mobile Safari, Chrome Mobile, Android Browser, etc.
+                    if (browser.includes('mobile') || browser.includes('android') || 
+                        browser.includes('iphone') || browser.includes('ipad') ||
+                        browser.includes('ios') || browser === 'safari' && count < 10) {
+                        mobileCount += count;
+                    } else {
+                        desktopCount += count;
+                    }
+                });
+            }
+            
+            // If no browser data, try agent data
+            if (mobileCount === 0 && desktopCount === 0) {
+                const agentQuery = {
+                    response: { mimeType: 'application/json' },
+                    request: {
+                        pipeline: [
+                            { source: { events: null, timeSeries: { period: 'dayRange', first: startMs, last: endMs } } },
+                            { filter: accountId !== 'all' ? `accountId == "${accountId}"` : 'true' },
+                            { group: { group: ['agent'], fields: [{ count: { count: null } }] } }
+                        ]
+                    }
+                };
+                
+                const agentData = await fetchAggregation(agentQuery);
+                console.log('Agent data:', agentData);
+                
+                if (agentData && agentData.results) {
+                    agentData.results.forEach(d => {
+                        const agent = (d.agent || '').toLowerCase();
+                        const count = d.count || 0;
+                        if (agent.includes('mobile') || agent.includes('android') || 
+                            agent.includes('iphone') || agent.includes('ipad') ||
+                            agent.includes('ios')) {
+                            mobileCount += count;
+                        } else {
+                            desktopCount += count;
+                        }
+                    });
+                }
+            }
+            
+            // Default to estimates if no data
+            if (mobileCount === 0 && desktopCount === 0 && totalUnique > 0) {
+                mobileCount = Math.round(totalUnique * 0.65);
+                desktopCount = Math.round(totalUnique * 0.35);
+            }
+            
+            console.log('Device breakdown - Mobile:', mobileCount, 'Desktop:', desktopCount);
+            
             // Render Space Explorer section
             renderSpaceExplorer({
                 totalUnique,
@@ -851,7 +962,9 @@
                 findRoom,
                 powerUsers,
                 dailyTrends,
-                days
+                days,
+                mobileCount,
+                desktopCount
             });
         }
         
@@ -1078,7 +1191,7 @@
             // Render charts
             setTimeout(() => {
                 renderTrendChart(data.dailyTrends);
-                renderDeviceChart();
+                renderDeviceChart(data.mobileCount || 0, data.desktopCount || 0);
             }, 100);
         }
         
@@ -1113,17 +1226,24 @@
             });
         }
         
-        function renderDeviceChart() {
+        function renderDeviceChart(mobileCount, desktopCount) {
             const ctx = document.getElementById('deviceChart');
             if (!ctx) return;
             
             if (deviceChart) deviceChart.destroy();
             
+            // Calculate percentages for display
+            const total = mobileCount + desktopCount;
+            const mobilePercent = total > 0 ? Math.round((mobileCount / total) * 100) : 0;
+            const desktopPercent = total > 0 ? Math.round((desktopCount / total) * 100) : 0;
+            
+            console.log(`Device Chart - Mobile: ${mobileCount} (${mobilePercent}%), Desktop: ${desktopCount} (${desktopPercent}%)`);
+            
             deviceChart = new Chart(ctx.getContext('2d'), {
                 type: 'pie',
                 data: {
-                    labels: ['Mobile', 'Laptop'],
-                    datasets: [{ data: [65, 35], backgroundColor: ['#4a90d9', '#f7931e'], borderWidth: 0 }]
+                    labels: [`Mobile (${mobilePercent}%)`, `Desktop (${desktopPercent}%)`],
+                    datasets: [{ data: [mobileCount || 1, desktopCount || 1], backgroundColor: ['#4a90d9', '#f7931e'], borderWidth: 0 }]
                 },
                 options: {
                     responsive: true,

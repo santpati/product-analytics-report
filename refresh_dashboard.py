@@ -40,7 +40,8 @@ def fetch_desk_booking_data():
     
     CONFIRM_BOOKING_ID = "1HnG04yQ3_VZ0-d8Z4hZPBIr2OQ"
     SHARE_ID = "RkSX_5wQ9DrD7f_PMW_1A_GWrCA"
-    HOLD_ROOM_ID = "oU1gYDzMf6L3555MOJO1Df6Xt8A"
+    HOLD_ROOM_ID = "5YQ8V5CiSld66Dw6HEPnxJRWnRs"  # Desk Booking - Clicked Button > Hold Room
+    HOLD_ROOM_MEETING_ID = "XBJD_Ok221ikYTE4NYy78O9Bt9o"  # Smart Workspaces - Meeting Room > Clicked Hold
     PAGE_ID = "sELpkBRM0AOk7qijVYixFJuSS4c"
     
     stats = {}
