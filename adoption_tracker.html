@@ -389,6 +389,9 @@
     <div class="main-header">
         <h1>🚀 Adoption Tracker</h1>
         <div class="tagline">Cisco Spaces Analytics Dashboard</div>
+        <a href="/analytics" style="display: inline-block; margin-top: 15px; padding: 8px 20px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 20px; color: #00d9ff; text-decoration: none; font-size: 0.9em; transition: all 0.3s ease;">
+            📊 View Usage Analytics
+        </a>
     </div>
     
     <div class="controls">
@@ -472,6 +475,24 @@
     </div>
 
     <script>
+        // Analytics tracking function
+        async function trackEvent(eventType, data = {}) {
+            try {
+                await fetch('/api/analytics/track', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        event_type: eventType,
+                        tenant_id: data.tenant_id || '',
+                        duration_days: data.duration_days || 0,
+                        report_type: data.report_type || ''
+                    })
+                });
+            } catch (error) {
+                console.log('Analytics tracking error:', error);
+            }
+        }
+        
         // Tab switching function
         function switchTab(tabName) {
             // Update tab buttons
@@ -502,6 +523,14 @@
             const tenantId = document.getElementById('tenantInput').value || '20482';
             const duration = document.getElementById('durationSelect').value;
             const today = new Date().toISOString().split('T')[0];
+            
+            // Track the Download event
+            const reportType = section === 'spaceExplorer' ? 'Space Explorer' : 'Indoor Navigation';
+            trackEvent('download_report', {
+                tenant_id: tenantId,
+                duration_days: parseInt(duration),
+                report_type: reportType
+            });
             
             const filename = section === 'spaceExplorer' 
                 ? `Space_Explorer_Report_${tenantId}_${duration}days_${today}.pdf`
@@ -672,6 +701,12 @@
                 alert('Please enter a tenant ID');
                 return;
             }
+            
+            // Track the Load Data event
+            trackEvent('load_data', {
+                tenant_id: baseId,
+                duration_days: days
+            });
             
             showLoading(true);
             
