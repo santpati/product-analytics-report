@@ -66,35 +66,50 @@ def init_database():
     print("📊 Analytics database initialized")
 
 class AdoptionHandler(http.server.SimpleHTTPRequestHandler):
+    def end_headers(self):
+        # Add cache-control headers to prevent caching of HTML files
+        if self.path.endswith('.html') or self.path == '/' or self.path == '/analytics':
+            self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+            self.send_header('Pragma', 'no-cache')
+            self.send_header('Expires', '0')
+        super().end_headers()
+    
     def do_GET(self):
         parsed = urlparse(self.path)
+        path = parsed.path
         
-        # Serve main page
-        if parsed.path == '/' or parsed.path == '/index.html':
+        # Serve main page - root path
+        if path == '/' or path == '/index.html':
+            self.path = '/adoption_tracker.html'
+            return http.server.SimpleHTTPRequestHandler.do_GET(self)
+        
+        # Handle URL pattern: /tenantID=xxx/duration=xxxd
+        # Also handle variations like /tenantID=xxx or just path with parameters
+        if path.startswith('/tenantID=') or (path.count('/') >= 1 and 'tenantID=' in path):
             self.path = '/adoption_tracker.html'
             return http.server.SimpleHTTPRequestHandler.do_GET(self)
         
         # Serve analytics dashboard
-        if parsed.path == '/analytics':
+        if path == '/analytics':
             self.path = '/analytics.html'
             return http.server.SimpleHTTPRequestHandler.do_GET(self)
         
         # Analytics API endpoints
-        if parsed.path == '/api/analytics/stats':
+        if path == '/api/analytics/stats':
             self.handle_analytics_stats()
             return
         
-        if parsed.path == '/api/analytics/timeseries':
+        if path == '/api/analytics/timeseries':
             self.handle_analytics_timeseries()
             return
         
-        if parsed.path == '/api/analytics/audit':
+        if path == '/api/analytics/audit':
             self.handle_analytics_audit()
             return
         
         # Proxy Pendo API GET requests
-        if parsed.path.startswith('/api/pendo/'):
-            self.proxy_pendo_get(parsed.path[11:], parse_qs(parsed.query))
+        if path.startswith('/api/pendo/'):
+            self.proxy_pendo_get(path[11:], parse_qs(parsed.query))
             return
         
         return http.server.SimpleHTTPRequestHandler.do_GET(self)
@@ -155,6 +170,10 @@ class AdoptionHandler(http.server.SimpleHTTPRequestHandler):
             conn = get_db_connection()
             cursor = conn.cursor()
             
+            # Total page views
+            cursor.execute("SELECT COUNT(*) FROM analytics_events WHERE event_type = 'page_view'")
+            page_views = cursor.fetchone()[0]
+            
             # Total reports generated (load_data events)
             cursor.execute("SELECT COUNT(*) FROM analytics_events WHERE event_type = 'load_data'")
             reports_generated = cursor.fetchone()[0]
@@ -180,6 +199,7 @@ class AdoptionHandler(http.server.SimpleHTTPRequestHandler):
             self.send_header('Access-Control-Allow-Origin', '*')
             self.end_headers()
             self.wfile.write(json.dumps({
+                'page_views': page_views,
                 'reports_generated': reports_generated,
                 'reports_downloaded': reports_downloaded,
                 'unique_tenants': unique_tenants,

@@ -341,28 +341,28 @@
     <div class="stats-grid">
         <div class="stat-card">
             <div class="stat-content">
-                <div class="stat-label">Unique Tenants</div>
-                <div class="stat-value" id="uniqueTenants">0</div>
+                <div class="stat-label">Page Views</div>
+                <div class="stat-value" id="pageViews">0</div>
             </div>
             <div class="stat-icon cyan">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                    <circle cx="9" cy="7" r="4"/>
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
                 </svg>
             </div>
         </div>
         
         <div class="stat-card">
             <div class="stat-content">
-                <div class="stat-label">Total Sessions</div>
-                <div class="stat-value" id="totalSessions">0</div>
+                <div class="stat-label">Unique Tenants</div>
+                <div class="stat-value" id="uniqueTenants">0</div>
             </div>
             <div class="stat-icon green">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10"/>
-                    <polyline points="12 6 12 12 16 14"/>
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                 </svg>
             </div>
         </div>
@@ -399,7 +399,7 @@
         
         <div class="stat-card">
             <div class="stat-content">
-                <div class="stat-label">Conversion Rate</div>
+                <div class="stat-label">Download Rate</div>
                 <div class="stat-value" id="conversionRate">0%</div>
             </div>
             <div class="stat-icon orange">
@@ -493,12 +493,12 @@
                 const response = await fetch('/api/analytics/stats');
                 const data = await response.json();
                 
+                document.getElementById('pageViews').textContent = data.page_views || 0;
                 document.getElementById('uniqueTenants').textContent = data.unique_tenants || 0;
-                document.getElementById('totalSessions').textContent = data.total_sessions || 0;
                 document.getElementById('reportsGenerated').textContent = data.reports_generated || 0;
                 document.getElementById('reportsDownloaded').textContent = data.reports_downloaded || 0;
                 
-                // Calculate conversion rate
+                // Calculate download rate (downloads / reports generated)
                 const rate = data.reports_generated > 0 
                     ? Math.round((data.reports_downloaded / data.reports_generated) * 100) 
                     : 0;

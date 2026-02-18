@@ -397,7 +397,7 @@
     <div class="controls">
         <div class="control-group">
             <label>📍 Enter Tenant ID</label>
-            <input type="text" id="tenantInput" placeholder="e.g., 20482" value="20482" 
+            <input type="text" id="tenantInput" placeholder="e.g., 20482" 
                    style="padding: 12px 20px; font-size: 1em; border: 2px solid rgba(255,255,255,0.2); 
                           border-radius: 10px; background: rgba(255,255,255,0.1); color: #fff; 
                           min-width: 200px; font-family: 'Poppins', sans-serif; text-align: center;">
@@ -693,13 +693,19 @@
         }
         
         // Main data fetch function
-        async function fetchAllData() {
+        // skipUrlUpdate: if true, don't update the URL (used on initial page load)
+        async function fetchAllData(skipUrlUpdate = false) {
             const baseId = document.getElementById('tenantInput').value.trim();
             const days = parseInt(document.getElementById('durationSelect').value);
             
             if (!baseId) {
                 alert('Please enter a tenant ID');
                 return;
+            }
+            
+            // Update URL to reflect current parameters
+            if (!skipUrlUpdate) {
+                updateUrl(baseId, days);
             }
             
             // Track the Load Data event
@@ -1341,7 +1347,36 @@
             document.getElementById('indoorNavContent').innerHTML = html;
         }
         
-        // Data only loads when "Load Data" button is clicked
+        // Default values
+        const DEFAULT_TENANT_ID = '20482';
+        const DEFAULT_DURATION = '30';
+        
+        // Parse URL path parameters like /tenantID=20482/duration=30d
+        function parseUrlParams() {
+            const path = window.location.pathname;
+            let tenantId = DEFAULT_TENANT_ID;
+            let duration = DEFAULT_DURATION;
+            
+            // Parse tenantID from path
+            const tenantMatch = path.match(/tenantID=(\d+)/);
+            if (tenantMatch) {
+                tenantId = tenantMatch[1];
+            }
+            
+            // Parse duration from path (e.g., duration=30d or duration=30)
+            const durationMatch = path.match(/duration=(\d+)/);
+            if (durationMatch) {
+                duration = durationMatch[1];
+            }
+            
+            return { tenantId, duration };
+        }
+        
+        // Update URL to reflect current parameters
+        function updateUrl(tenantId, duration) {
+            const newPath = `/tenantID=${tenantId}/duration=${duration}d`;
+            window.history.pushState({ tenantId, duration }, '', newPath);
+        }
         
         // Allow pressing Enter in the input to load data
         document.getElementById('tenantInput').addEventListener('keypress', function(e) {
@@ -1350,12 +1385,34 @@
             }
         });
         
-        // Auto-load data on page load with default value (20482)
-        document.addEventListener('DOMContentLoaded', function() {
-            const tenantInput = document.getElementById('tenantInput');
-            if (tenantInput.value) {
-                fetchAllData();
+        // Handle browser back/forward navigation
+        window.addEventListener('popstate', function(event) {
+            if (event.state) {
+                document.getElementById('tenantInput').value = event.state.tenantId;
+                document.getElementById('durationSelect').value = event.state.duration;
+                fetchAllData(true); // true = don't update URL again
             }
+        });
+        
+        // Auto-load data on page load based on URL parameters
+        document.addEventListener('DOMContentLoaded', function() {
+            // Track page view
+            trackEvent('page_view', {});
+            
+            // Parse URL parameters
+            const { tenantId, duration } = parseUrlParams();
+            
+            // Set input values from URL (or defaults)
+            document.getElementById('tenantInput').value = tenantId;
+            document.getElementById('durationSelect').value = duration;
+            
+            // Update URL if we're on root path
+            if (window.location.pathname === '/' || window.location.pathname === '/index.html') {
+                updateUrl(tenantId, duration);
+            }
+            
+            // Load data
+            fetchAllData(true); // true = don't update URL again (already set)
         });
     </script>
 </body>
