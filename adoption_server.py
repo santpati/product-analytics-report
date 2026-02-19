@@ -68,7 +68,8 @@ def init_database():
 class AdoptionHandler(http.server.SimpleHTTPRequestHandler):
     def end_headers(self):
         # Add cache-control headers to prevent caching of HTML files
-        if self.path.endswith('.html') or self.path == '/' or self.path == '/analytics':
+        path = getattr(self, 'path', '')
+        if path and (path.endswith('.html') or path == '/' or path == '/analytics' or 'tenantID=' in path):
             self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
             self.send_header('Pragma', 'no-cache')
             self.send_header('Expires', '0')
