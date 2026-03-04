@@ -210,6 +210,56 @@ sudo chown -R ec2-user:ec2-user /home/ec2-user/product-analytics-report
 
 ---
 
+## Analytics Database Backup
+
+The analytics data is stored in `analytics.db` (SQLite). This file is protected:
+
+1. **Added to .gitignore** - Won't be overwritten by git operations
+2. **Backed up during deployments** - `deploy.sh` creates a backup before pulling changes
+3. **Backups stored in** `/home/ec2-user/analytics-backups/`
+
+### Manual Backup
+
+```bash
+# SSH into EC2 and run backup script
+cd product-analytics-report
+./backup-analytics.sh
+```
+
+### Scheduled Backups (Optional)
+
+Set up daily backups at midnight:
+
+```bash
+# Add cron job for daily backup
+(crontab -l 2>/dev/null; echo "0 0 * * * cd /home/ec2-user/product-analytics-report && ./backup-analytics.sh >> /tmp/analytics-backup.log 2>&1") | crontab -
+```
+
+### Download Backup to Local Machine
+
+```bash
+scp -i "Santosh-Demo.pem" ec2-user@ec2-3-236-226-21.compute-1.amazonaws.com:~/product-analytics-report/analytics.db ./analytics_backup.db
+```
+
+---
+
+## Version Tags
+
+Stable versions are tagged in git:
+
+| Tag | Description |
+|-----|-------------|
+| `v1.0.0-stable` | First stable release with URL routing and analytics |
+
+To restore to a stable version:
+
+```bash
+git fetch --tags
+git checkout v1.0.0-stable
+```
+
+---
+
 ## Optional: Set Up Auto-Refresh
 
 To automatically refresh dashboard data hourly:
