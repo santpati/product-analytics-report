@@ -3,3 +3,11 @@ node_modules/
 .env
 *.log
 
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# Analytics database (backed up separately, never overwritten by git)
+analytics.db
+analytics.db-journal
