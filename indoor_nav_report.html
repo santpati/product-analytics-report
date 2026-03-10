@@ -109,8 +109,70 @@
         }
         
         #siteSelect {
-            min-width: 320px;
-            max-width: 450px;
+            min-width: 400px;
+            max-width: 500px;
+            height: auto;
+        }
+        
+        #siteSelect option {
+            padding: 8px 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        #siteSelect option:checked {
+            background: linear-gradient(135deg, rgba(0, 198, 255, 0.3) 0%, rgba(0, 114, 255, 0.3) 100%);
+        }
+        
+        .site-controls {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 16px;
+        }
+        
+        .site-select-group {
+            width: 100%;
+        }
+        
+        .site-select-group label .hint {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.4);
+            font-weight: 400;
+            margin-left: 8px;
+        }
+        
+        .site-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        
+        .select-all-btn, .clear-btn {
+            padding: 10px 20px;
+            font-size: 13px;
+            font-weight: 500;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            color: rgba(255, 255, 255, 0.7);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+        
+        .select-all-btn:hover, .clear-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+        
+        .sites-info {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 8px;
+        }
+        
+        .sites-info span {
+            color: #00c6ff;
+            font-weight: 600;
         }
         
         .control-group input:focus,
@@ -500,8 +562,8 @@
             </div>
         </div>
         
-        <!-- Controls -->
-        <div class="controls">
+        <!-- Step 1: Tenant & Duration -->
+        <div class="controls" id="step1Controls">
             <div class="control-group">
                 <label>Tenant ID</label>
                 <input type="text" id="tenantInput" placeholder="e.g., 16007">
@@ -516,15 +578,25 @@
                     <option value="90">Last 90 Days</option>
                 </select>
             </div>
-            <div class="control-group">
-                <label>Sites</label>
-                <select id="siteSelect">
-                    <option value="all" selected>All Sites</option>
+            <button class="load-btn" id="getDataBtn" onclick="getData()">
+                Get Data
+            </button>
+        </div>
+        
+        <!-- Step 2: Sites Selection (hidden initially) -->
+        <div class="controls site-controls" id="step2Controls" style="display: none;">
+            <div class="control-group site-select-group">
+                <label>Sites <span class="hint">(Hold Ctrl/Cmd to select multiple)</span></label>
+                <select id="siteSelect" multiple size="6">
                 </select>
             </div>
-            <button class="load-btn" id="loadBtn" onclick="loadData()">
-                Load Data
-            </button>
+            <div class="site-actions">
+                <button class="select-all-btn" onclick="selectAllSites()">Select All</button>
+                <button class="clear-btn" onclick="clearSiteSelection()">Clear</button>
+                <button class="load-btn" id="loadBtn" onclick="loadData()">
+                    Load Data
+                </button>
+            </div>
         </div>
         
         <div class="divider"></div>
@@ -667,9 +739,15 @@
             return `${startDate.toLocaleDateString('en-US', options)} - ${endDate.toLocaleDateString('en-US', options)}`;
         }
         
-        function showLoading(show) {
-            document.getElementById('loadingOverlay').classList.toggle('active', show);
-            document.getElementById('loadBtn').disabled = show;
+        function showLoading(show, text = 'Fetching data from Pendo...') {
+            const overlay = document.getElementById('loadingOverlay');
+            const loadingText = overlay.querySelector('.loading-text');
+            if (loadingText) loadingText.textContent = text;
+            overlay.classList.toggle('active', show);
+            const loadBtn = document.getElementById('loadBtn');
+            const getDataBtn = document.getElementById('getDataBtn');
+            if (loadBtn) loadBtn.disabled = show;
+            if (getDataBtn) getDataBtn.disabled = show;
         }
         
         async function fetchAggregation(query) {
@@ -705,9 +783,7 @@
         
         function updateSitesDropdown(sites) {
             const siteSelect = document.getElementById('siteSelect');
-            const currentValue = siteSelect.value;
-            
-            siteSelect.innerHTML = '<option value="all" selected>All Sites</option>';
+            siteSelect.innerHTML = '';
             
             sites.forEach(site => {
                 const location = site.properties?.locationHierarchy;
@@ -719,30 +795,49 @@
                 }
             });
             
-            if (currentValue && currentValue !== 'all') {
-                const exists = Array.from(siteSelect.options).some(opt => opt.value === currentValue);
-                if (exists) siteSelect.value = currentValue;
-            }
+            // Select all by default
+            selectAllSites();
         }
         
-        function buildSiteFilter(accountId, selectedSite) {
-            if (selectedSite === 'all') {
+        function selectAllSites() {
+            const siteSelect = document.getElementById('siteSelect');
+            Array.from(siteSelect.options).forEach(opt => opt.selected = true);
+        }
+        
+        function clearSiteSelection() {
+            const siteSelect = document.getElementById('siteSelect');
+            Array.from(siteSelect.options).forEach(opt => opt.selected = false);
+        }
+        
+        function getSelectedSites() {
+            const siteSelect = document.getElementById('siteSelect');
+            return Array.from(siteSelect.selectedOptions).map(opt => opt.value);
+        }
+        
+        function buildSiteFilter(accountId, selectedSites) {
+            if (!selectedSites || selectedSites.length === 0 || 
+                selectedSites.length === document.getElementById('siteSelect').options.length) {
                 return `accountId == "${accountId}"`;
             }
-            return `accountId == "${accountId}" && properties.locationHierarchy == "${selectedSite}"`;
+            
+            if (selectedSites.length === 1) {
+                return `accountId == "${accountId}" && properties.locationHierarchy == "${selectedSites[0]}"`;
+            }
+            
+            const siteConditions = selectedSites.map(s => `properties.locationHierarchy == "${s}"`).join(' || ');
+            return `accountId == "${accountId}" && (${siteConditions})`;
         }
         
-        async function loadData() {
+        async function getData() {
             const tenantId = document.getElementById('tenantInput').value.trim();
             const days = parseInt(document.getElementById('durationSelect').value);
-            const selectedSite = document.getElementById('siteSelect').value;
             
             if (!tenantId) {
                 alert('Please enter a tenant ID');
                 return;
             }
             
-            showLoading(true);
+            showLoading(true, 'Fetching available sites...');
             
             const accountId = `${tenantId}${INDOOR_NAV_SUFFIX}`;
             const { startMs, endMs, startDate, endDate } = getDateRange(days);
@@ -752,14 +847,54 @@
                 `${formatDateRange(startDate, endDate)} (Last ${days} Days)`;
             
             try {
-                // Fetch sites if tenant changed
-                if (cachedTenantId !== tenantId) {
-                    const sites = await fetchSites(accountId, startMs, endMs);
-                    updateSitesDropdown(sites);
-                    cachedTenantId = tenantId;
+                const sites = await fetchSites(accountId, startMs, endMs);
+                
+                if (sites.length === 0) {
+                    alert('No data found for this tenant ID and duration.');
+                    showLoading(false);
+                    return;
                 }
                 
-                const filterExpr = buildSiteFilter(accountId, selectedSite);
+                updateSitesDropdown(sites);
+                cachedTenantId = tenantId;
+                
+                // Show step 2 controls
+                document.getElementById('step2Controls').style.display = 'flex';
+                
+            } catch (error) {
+                console.error('Error fetching sites:', error);
+                alert('Error fetching data. Check console for details.');
+            }
+            
+            showLoading(false);
+        }
+        
+        async function loadData() {
+            const tenantId = document.getElementById('tenantInput').value.trim();
+            const days = parseInt(document.getElementById('durationSelect').value);
+            const selectedSites = getSelectedSites();
+            
+            if (!tenantId) {
+                alert('Please enter a tenant ID');
+                return;
+            }
+            
+            if (selectedSites.length === 0) {
+                alert('Please select at least one site');
+                return;
+            }
+            
+            showLoading(true, 'Loading report data...');
+            
+            const accountId = `${tenantId}${INDOOR_NAV_SUFFIX}`;
+            const { startMs, endMs, startDate, endDate } = getDateRange(days);
+            
+            document.getElementById('accountDisplay').textContent = accountId;
+            document.getElementById('dateRangeDisplay').textContent = 
+                `${formatDateRange(startDate, endDate)} (Last ${days} Days)`;
+            
+            try {
+                const filterExpr = buildSiteFilter(accountId, selectedSites);
                 
                 // 1. Fetch total QR scans
                 const totalQuery = {
@@ -828,11 +963,6 @@
             
             showLoading(false);
         }
-        
-        // Auto-refresh when site selection changes
-        document.getElementById('siteSelect').addEventListener('change', function() {
-            loadData();
-        });
         
         function setTrendsView(view) {
             currentTrendsView = view;
@@ -1053,14 +1183,11 @@
             // Render empty charts
             renderTrendsChart('daily');
             renderPlatformChart([]);
-            
-            // Auto-load data
-            loadData();
         });
         
-        // Allow Enter key to load data
+        // Allow Enter key to get data
         document.getElementById('tenantInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') loadData();
+            if (e.key === 'Enter') getData();
         });
     </script>
 </body>
