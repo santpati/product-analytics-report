@@ -1739,6 +1739,24 @@
         // Register Chart.js datalabels plugin
         Chart.register(ChartDataLabels);
         
+        // Analytics tracking function
+        async function trackEvent(eventType, data = {}) {
+            try {
+                await fetch('/api/analytics/track', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        event_type: '[IndoorNav] ' + eventType,
+                        tenant_id: data.tenant_id || '',
+                        duration_days: data.duration_days || 0,
+                        report_type: data.report_type || ''
+                    })
+                });
+            } catch (e) {
+                console.log('Analytics tracking error:', e);
+            }
+        }
+        
         // Load Google Charts
         google.charts.load('current', {'packages':['sankey']});
         let googleChartsLoaded = false;
@@ -1969,6 +1987,12 @@
                 alert('Please enter a tenant ID');
                 return;
             }
+            
+            // Track report generation
+            trackEvent('report_generated', {
+                tenant_id: tenantId,
+                duration_days: days
+            });
             
             if (selectedSites.length === 0) {
                 alert('Please select at least one site');
@@ -2902,6 +2926,16 @@
         async function exportAsHTML() {
             const settings = getExportSettings();
             closeExportModal();
+            
+            // Track report download
+            const tenantId = document.getElementById('tenantInput').value.trim();
+            const days = parseInt(document.getElementById('durationSelect').value);
+            trackEvent('report_downloaded', {
+                tenant_id: tenantId,
+                duration_days: days,
+                report_type: 'HTML'
+            });
+            
             showLoading(true, 'Generating HTML report...');
             
             // Update trends view if needed
@@ -3274,6 +3308,9 @@
         
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
+            // Track page view
+            trackEvent('page_view', {});
+            
             const { tenantId, duration } = parseUrlParams();
             
             document.getElementById('tenantInput').value = tenantId;
