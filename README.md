@@ -257,12 +257,12 @@ git push origin main
 
 **Step 2:** Deploy to AWS (one command)
 ```bash
-ssh -i "Santosh-Demo.pem" ec2-user@ec2-3-236-226-21.compute-1.amazonaws.com "cd product-analytics-report && ./deploy.sh"
+ssh -i "Santosh-Demo.pem" ec2-user@ec2-13-221-5-205.compute-1.amazonaws.com "cd product-analytics-report && ./deploy.sh"
 ```
 
 **Step 3:** Access your dashboard at:
 ```
-http://ec2-3-236-226-21.compute-1.amazonaws.com:8080
+http://ec2-13-221-5-205.compute-1.amazonaws.com:8080
 ```
 
 For detailed deployment instructions, troubleshooting, and architecture details, see **[DEPLOYMENT.md](DEPLOYMENT.md)**.

@@ -22,10 +22,10 @@ git push origin main
 ### Step 2: Deploy to AWS (one command)
 
 ```bash
-ssh -i "Santosh-Demo.pem" ec2-user@ec2-3-236-226-21.compute-1.amazonaws.com "cd product-analytics-report && ./deploy.sh"
+ssh -i "Santosh-Demo.pem" ec2-user@ec2-13-221-5-205.compute-1.amazonaws.com "cd product-analytics-report && ./deploy.sh"
 ```
 
-That's it! ✅ View your dashboard at: **http://ec2-3-236-226-21.compute-1.amazonaws.com:8080**
+That's it! ✅ View your dashboard at: **http://ec2-13-221-5-205.compute-1.amazonaws.com:8080**
 
 ### Optional: One-Click Deploy Script for Mac
 
@@ -43,9 +43,9 @@ git commit -m "${1:-Update dashboard}"
 git push origin main
 
 echo "🚀 Deploying to AWS..."
-ssh -i "Santosh-Demo.pem" ec2-user@ec2-3-236-226-21.compute-1.amazonaws.com "cd product-analytics-report && ./deploy.sh"
+ssh -i "Santosh-Demo.pem" ec2-user@ec2-13-221-5-205.compute-1.amazonaws.com "cd product-analytics-report && ./deploy.sh"
 
-echo "✅ Done! View at: http://ec2-3-236-226-21.compute-1.amazonaws.com:8080"
+echo "✅ Done! View at: http://ec2-13-221-5-205.compute-1.amazonaws.com:8080"
 EOF
 
 chmod +x ~/deploy-to-aws.sh
@@ -90,7 +90,7 @@ Before deploying, ensure port 8080 is open:
 SSH into your EC2 instance and run:
 
 ```bash
-ssh -i "Santosh-Demo.pem" ec2-user@ec2-3-236-226-21.compute-1.amazonaws.com
+ssh -i "Santosh-Demo.pem" ec2-user@ec2-13-221-5-205.compute-1.amazonaws.com
 ```
 
 Then execute:
@@ -103,7 +103,7 @@ curl -sSL https://raw.githubusercontent.com/santpati/product-analytics-report/ma
 
 ```bash
 # SSH into your instance
-ssh -i "Santosh-Demo.pem" ec2-user@ec2-3-236-226-21.compute-1.amazonaws.com
+ssh -i "Santosh-Demo.pem" ec2-user@ec2-13-221-5-205.compute-1.amazonaws.com
 
 # Clone the repository
 git clone https://github.com/santpati/product-analytics-report.git
@@ -121,7 +121,7 @@ chmod +x setup-ec2.sh
 Once deployed, access your dashboard at:
 
 ```
-http://ec2-3-236-226-21.compute-1.amazonaws.com:8080
+http://ec2-13-221-5-205.compute-1.amazonaws.com:8080
 ```
 
 ---
@@ -132,7 +132,7 @@ When you push changes to GitHub, redeploy with:
 
 ```bash
 # SSH into EC2
-ssh -i "Santosh-Demo.pem" ec2-user@ec2-3-236-226-21.compute-1.amazonaws.com
+ssh -i "Santosh-Demo.pem" ec2-user@ec2-13-221-5-205.compute-1.amazonaws.com
 
 # Run deploy script
 cd product-analytics-report
@@ -142,7 +142,7 @@ cd product-analytics-report
 Or as a one-liner from your local machine:
 
 ```bash
-ssh -i "Santosh-Demo.pem" ec2-user@ec2-3-236-226-21.compute-1.amazonaws.com "cd product-analytics-report && ./deploy.sh"
+ssh -i "Santosh-Demo.pem" ec2-user@ec2-13-221-5-205.compute-1.amazonaws.com "cd product-analytics-report && ./deploy.sh"
 ```
 
 ---
@@ -238,7 +238,7 @@ Set up daily backups at midnight:
 ### Download Backup to Local Machine
 
 ```bash
-scp -i "Santosh-Demo.pem" ec2-user@ec2-3-236-226-21.compute-1.amazonaws.com:~/product-analytics-report/analytics.db ./analytics_backup.db
+scp -i "Santosh-Demo.pem" ec2-user@ec2-13-221-5-205.compute-1.amazonaws.com:~/product-analytics-report/analytics.db ./analytics_backup.db
 ```
 
 ---
