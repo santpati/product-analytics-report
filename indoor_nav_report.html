@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Indoor Navigation Report</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -14,7 +14,7 @@
         }
         
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             background: linear-gradient(180deg, #000000 0%, #1a1a2e 100%);
             min-height: 100vh;
             color: #ffffff;
@@ -70,6 +70,77 @@
         
         .header-meta span {
             color: #00c6ff;
+        }
+        
+        /* Controls */
+        .controls {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 32px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        
+        .control-group label {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .control-group input,
+        .control-group select {
+            padding: 12px 16px;
+            font-size: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            font-family: inherit;
+            min-width: 180px;
+            transition: all 0.2s;
+        }
+        
+        .control-group input:focus,
+        .control-group select:focus {
+            outline: none;
+            border-color: #00c6ff;
+            box-shadow: 0 0 0 3px rgba(0, 198, 255, 0.2);
+        }
+        
+        .control-group select option {
+            background: #1a1a2e;
+            color: #fff;
+        }
+        
+        .load-btn {
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 600;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%);
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+        
+        .load-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 114, 255, 0.4);
+        }
+        
+        .load-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
         }
         
         /* Divider */
@@ -242,6 +313,13 @@
             .metric-value {
                 font-size: 48px;
             }
+            .controls {
+                flex-direction: column;
+            }
+            .control-group input,
+            .control-group select {
+                min-width: 100%;
+            }
         }
         
         /* Back Link */
@@ -261,30 +339,64 @@
             opacity: 1;
         }
         
-        /* Loading */
-        .loading {
-            display: flex;
+        /* Loading Overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
             align-items: center;
             justify-content: center;
-            height: 200px;
-            color: rgba(255, 255, 255, 0.5);
+            z-index: 1000;
+            flex-direction: column;
+            gap: 16px;
+        }
+        
+        .loading-overlay.active {
+            display: flex;
         }
         
         .spinner {
-            width: 40px;
-            height: 40px;
+            width: 50px;
+            height: 50px;
             border: 3px solid rgba(255, 255, 255, 0.1);
             border-top-color: #00c6ff;
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
         
+        .loading-text {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 14px;
+        }
+        
         @keyframes spin {
             to { transform: rotate(360deg); }
+        }
+        
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .empty-state .icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
         }
     </style>
 </head>
 <body>
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+        <div class="loading-text">Fetching data from Pendo...</div>
+    </div>
+
     <div class="container">
         <a href="/" class="back-link">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -303,16 +415,37 @@
             <div class="header-text">
                 <h1>Indoor Navigation</h1>
                 <div class="header-meta">
-                    Account: <span id="accountId">16007_wf.ciscospaces.io</span> | 
-                    <span id="dateRange">Feb 6 - Mar 9, 2026</span> (Last <span id="duration">30</span> Days)
+                    Account: <span id="accountDisplay">--</span> | 
+                    <span id="dateRangeDisplay">--</span>
                 </div>
             </div>
+        </div>
+        
+        <!-- Controls -->
+        <div class="controls">
+            <div class="control-group">
+                <label>Tenant ID</label>
+                <input type="text" id="tenantInput" placeholder="e.g., 16007">
+            </div>
+            <div class="control-group">
+                <label>Duration</label>
+                <select id="durationSelect">
+                    <option value="7">Last 7 Days</option>
+                    <option value="14">Last 14 Days</option>
+                    <option value="30" selected>Last 30 Days</option>
+                    <option value="60">Last 60 Days</option>
+                    <option value="90">Last 90 Days</option>
+                </select>
+            </div>
+            <button class="load-btn" id="loadBtn" onclick="loadData()">
+                Load Data
+            </button>
         </div>
         
         <div class="divider"></div>
         
         <!-- Key Metrics Section -->
-        <div class="section-title">Key Metrics</div>
+        <div class="section-title">Key Metrics • QR Code Scanning</div>
         
         <!-- Row 1: QR Scans + Time Series -->
         <div class="metrics-row">
@@ -328,7 +461,7 @@
             </div>
             
             <div class="chart-card">
-                <div class="chart-title">QR Scan Trends</div>
+                <div class="chart-title">QR Scan Trends (Daily)</div>
                 <div class="chart-container">
                     <canvas id="qrTrendsChart"></canvas>
                 </div>
@@ -356,15 +489,15 @@
                 <div class="pie-legend">
                     <div class="legend-item">
                         <div class="legend-dot ios"></div>
-                        <span>iOS</span>
+                        <span>iOS (<span id="iosCount">0</span>)</span>
                     </div>
                     <div class="legend-item">
                         <div class="legend-dot android"></div>
-                        <span>Android</span>
+                        <span>Android (<span id="androidCount">0</span>)</span>
                     </div>
                     <div class="legend-item">
                         <div class="legend-dot web"></div>
-                        <span>Web</span>
+                        <span>Web (<span id="webCount">0</span>)</span>
                     </div>
                 </div>
             </div>
@@ -372,137 +505,301 @@
     </div>
 
     <script>
-        // Sample data from CSV - In production, this would be fetched via API
-        const qrScanData = {
-            // Aggregated from CSV by date
-            dailyEvents: {
-                '2026-02-10': 12,
-                '2026-02-11': 18,
-                '2026-02-12': 25,
-                '2026-02-13': 8,
-                '2026-02-14': 32,
-                '2026-02-15': 15,
-                '2026-02-17': 22,
-                '2026-02-18': 14,
-                '2026-02-19': 28,
-                '2026-02-20': 19,
-                '2026-02-21': 11,
-                '2026-02-24': 16,
-                '2026-02-25': 23,
-                '2026-02-26': 31,
-                '2026-02-27': 9,
-                '2026-02-28': 27,
-                '2026-03-03': 35,
-                '2026-03-04': 21,
-                '2026-03-05': 42,
-                '2026-03-06': 38
-            },
-            // Platform breakdown from mobileOs field
-            platformBreakdown: {
-                'iOS': 156,
-                'Android': 89,
-                'Web': 213
-            },
-            totalEvents: 458,
-            uniqueVisitors: 187
-        };
+        const BASE_URL = '/api/pendo';
+        const INDOOR_NAV_SUFFIX = '_wf.ciscospaces.io';
+        const QR_SCAN_TRACK_ID = 'WTbkpuIbpDRGeRZXHVyg6swMZf8';
         
-        // Update metrics
-        document.getElementById('totalQRScans').textContent = qrScanData.totalEvents.toLocaleString();
-        document.getElementById('uniqueVisitors').textContent = qrScanData.uniqueVisitors.toLocaleString();
+        const DEFAULT_TENANT_ID = '16007';
+        const DEFAULT_DURATION = '30';
         
-        // Render Time Series Chart
-        const trendsCtx = document.getElementById('qrTrendsChart').getContext('2d');
-        const labels = Object.keys(qrScanData.dailyEvents).map(date => {
-            const d = new Date(date);
-            return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        });
-        const values = Object.values(qrScanData.dailyEvents);
+        let trendsChart = null;
+        let platformChart = null;
         
-        new Chart(trendsCtx, {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'QR Scans',
-                    data: values,
-                    backgroundColor: 'rgba(0, 198, 255, 0.6)',
-                    borderColor: 'rgba(0, 198, 255, 1)',
-                    borderWidth: 1,
-                    borderRadius: 6,
-                    barPercentage: 0.7
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false }
-                },
-                scales: {
-                    x: {
-                        grid: { display: false },
-                        ticks: { 
-                            color: 'rgba(255, 255, 255, 0.5)',
-                            font: { size: 10 },
-                            maxRotation: 45
-                        }
-                    },
-                    y: {
-                        beginAtZero: true,
-                        grid: { color: 'rgba(255, 255, 255, 0.05)' },
-                        ticks: { 
-                            color: 'rgba(255, 255, 255, 0.5)',
-                            font: { size: 11 }
-                        }
-                    }
-                }
+        // Parse URL parameters
+        function parseUrlParams() {
+            const path = window.location.pathname;
+            let tenantId = DEFAULT_TENANT_ID;
+            let duration = DEFAULT_DURATION;
+            
+            const tenantMatch = path.match(/tenantID=(\d+)/);
+            if (tenantMatch) tenantId = tenantMatch[1];
+            
+            const durationMatch = path.match(/duration=(\d+)/);
+            if (durationMatch) duration = durationMatch[1];
+            
+            // Also check query params
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('tenant')) tenantId = urlParams.get('tenant');
+            if (urlParams.get('duration')) duration = urlParams.get('duration');
+            
+            return { tenantId, duration };
+        }
+        
+        function getDateRange(days) {
+            const end = new Date();
+            end.setHours(23, 59, 59, 999);
+            const start = new Date();
+            start.setDate(start.getDate() - days);
+            start.setHours(0, 0, 0, 0);
+            return { 
+                startMs: start.getTime(),
+                endMs: end.getTime(),
+                startDate: start,
+                endDate: end
+            };
+        }
+        
+        function formatDateRange(startDate, endDate) {
+            const options = { month: 'short', day: 'numeric', year: 'numeric' };
+            return `${startDate.toLocaleDateString('en-US', options)} - ${endDate.toLocaleDateString('en-US', options)}`;
+        }
+        
+        function showLoading(show) {
+            document.getElementById('loadingOverlay').classList.toggle('active', show);
+            document.getElementById('loadBtn').disabled = show;
+        }
+        
+        async function fetchAggregation(query) {
+            try {
+                const response = await fetch(`${BASE_URL}/aggregation`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(query)
+                });
+                if (!response.ok) throw new Error(`API Error: ${response.status}`);
+                return await response.json();
+            } catch (error) {
+                console.error('Pendo API Error:', error);
+                return null;
             }
-        });
+        }
         
-        // Render Platform Pie Chart
-        const platformCtx = document.getElementById('platformChart').getContext('2d');
-        new Chart(platformCtx, {
-            type: 'doughnut',
-            data: {
-                labels: ['iOS', 'Android', 'Web'],
-                datasets: [{
-                    data: [
-                        qrScanData.platformBreakdown.iOS,
-                        qrScanData.platformBreakdown.Android,
-                        qrScanData.platformBreakdown.Web
-                    ],
-                    backgroundColor: [
-                        'rgba(0, 122, 255, 0.8)',
-                        'rgba(52, 199, 89, 0.8)',
-                        'rgba(255, 149, 0, 0.8)'
-                    ],
-                    borderColor: [
-                        'rgba(0, 122, 255, 1)',
-                        'rgba(52, 199, 89, 1)',
-                        'rgba(255, 149, 0, 1)'
-                    ],
-                    borderWidth: 2,
-                    hoverOffset: 8
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                cutout: '60%',
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                const percentage = Math.round((context.raw / total) * 100);
-                                return `${context.label}: ${context.raw} (${percentage}%)`;
+        async function loadData() {
+            const tenantId = document.getElementById('tenantInput').value.trim();
+            const days = parseInt(document.getElementById('durationSelect').value);
+            
+            if (!tenantId) {
+                alert('Please enter a tenant ID');
+                return;
+            }
+            
+            showLoading(true);
+            
+            const accountId = `${tenantId}${INDOOR_NAV_SUFFIX}`;
+            const { startMs, endMs, startDate, endDate } = getDateRange(days);
+            
+            // Update header
+            document.getElementById('accountDisplay').textContent = accountId;
+            document.getElementById('dateRangeDisplay').textContent = 
+                `${formatDateRange(startDate, endDate)} (Last ${days} Days)`;
+            
+            try {
+                // 1. Fetch total QR scans
+                const totalQuery = {
+                    response: { mimeType: 'application/json' },
+                    request: {
+                        pipeline: [
+                            { source: { trackEvents: { trackTypeId: QR_SCAN_TRACK_ID }, timeSeries: { period: 'dayRange', first: startMs, last: endMs } } },
+                            { filter: `accountId == "${accountId}"` },
+                            { group: { fields: [{ count: { sum: 'numEvents' } }] } }
+                        ]
+                    }
+                };
+                const totalData = await fetchAggregation(totalQuery);
+                const totalScans = (totalData?.results?.[0]?.count) || 0;
+                document.getElementById('totalQRScans').textContent = totalScans.toLocaleString();
+                
+                // 2. Fetch unique visitors
+                const uniqueQuery = {
+                    response: { mimeType: 'application/json' },
+                    request: {
+                        pipeline: [
+                            { source: { trackEvents: { trackTypeId: QR_SCAN_TRACK_ID }, timeSeries: { period: 'dayRange', first: startMs, last: endMs } } },
+                            { filter: `accountId == "${accountId}"` },
+                            { group: { group: ['visitorId'], fields: [{ count: { count: null } }] } }
+                        ]
+                    }
+                };
+                const uniqueData = await fetchAggregation(uniqueQuery);
+                const uniqueVisitors = uniqueData?.results?.length || 0;
+                document.getElementById('uniqueVisitors').textContent = uniqueVisitors.toLocaleString();
+                
+                // 3. Fetch daily trends
+                const trendsQuery = {
+                    response: { mimeType: 'application/json' },
+                    request: {
+                        pipeline: [
+                            { source: { trackEvents: { trackTypeId: QR_SCAN_TRACK_ID }, timeSeries: { period: 'dayRange', first: startMs, last: endMs } } },
+                            { filter: `accountId == "${accountId}"` },
+                            { group: { group: ['day'], fields: [{ count: { sum: 'numEvents' } }] } },
+                            { sort: ['day'] }
+                        ]
+                    }
+                };
+                const trendsData = await fetchAggregation(trendsQuery);
+                renderTrendsChart(trendsData?.results || []);
+                
+                // 4. Fetch platform breakdown (by userAgent/mobileOs proxy)
+                const platformQuery = {
+                    response: { mimeType: 'application/json' },
+                    request: {
+                        pipeline: [
+                            { source: { trackEvents: { trackTypeId: QR_SCAN_TRACK_ID }, timeSeries: { period: 'dayRange', first: startMs, last: endMs } } },
+                            { filter: `accountId == "${accountId}"` },
+                            { group: { group: ['userAgent'], fields: [{ count: { sum: 'numEvents' } }] } }
+                        ]
+                    }
+                };
+                const platformData = await fetchAggregation(platformQuery);
+                renderPlatformChart(platformData?.results || []);
+                
+            } catch (error) {
+                console.error('Error loading data:', error);
+                alert('Error loading data. Check console for details.');
+            }
+            
+            showLoading(false);
+        }
+        
+        function renderTrendsChart(data) {
+            const ctx = document.getElementById('qrTrendsChart').getContext('2d');
+            
+            if (trendsChart) trendsChart.destroy();
+            
+            const labels = data.map(d => {
+                const date = new Date(d.day);
+                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            });
+            const values = data.map(d => d.count || 0);
+            
+            trendsChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels.length ? labels : ['No Data'],
+                    datasets: [{
+                        label: 'QR Scans',
+                        data: values.length ? values : [0],
+                        backgroundColor: 'rgba(0, 198, 255, 0.6)',
+                        borderColor: 'rgba(0, 198, 255, 1)',
+                        borderWidth: 1,
+                        borderRadius: 6,
+                        barPercentage: 0.7
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: { 
+                                color: 'rgba(255, 255, 255, 0.5)',
+                                font: { size: 10 },
+                                maxRotation: 45
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: { 
+                                color: 'rgba(255, 255, 255, 0.5)',
+                                font: { size: 11 },
+                                stepSize: 1
                             }
                         }
                     }
                 }
-            }
+            });
+        }
+        
+        function renderPlatformChart(data) {
+            const ctx = document.getElementById('platformChart').getContext('2d');
+            
+            if (platformChart) platformChart.destroy();
+            
+            // Categorize by platform based on userAgent
+            let ios = 0, android = 0, web = 0;
+            
+            data.forEach(d => {
+                const ua = (d.userAgent || '').toLowerCase();
+                const count = d.count || 0;
+                
+                if (ua.includes('iphone') || ua.includes('ipad') || ua.includes('ios') || 
+                    ua.includes('ciscospaces.wayfinding.clip') || ua.includes('com.ciscospaces')) {
+                    ios += count;
+                } else if (ua.includes('android') || ua.includes('cisco.spaces.wayfinding')) {
+                    android += count;
+                } else {
+                    web += count;
+                }
+            });
+            
+            // Update legend counts
+            document.getElementById('iosCount').textContent = ios;
+            document.getElementById('androidCount').textContent = android;
+            document.getElementById('webCount').textContent = web;
+            
+            const total = ios + android + web;
+            
+            platformChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['iOS', 'Android', 'Web'],
+                    datasets: [{
+                        data: total > 0 ? [ios, android, web] : [1, 1, 1],
+                        backgroundColor: [
+                            'rgba(0, 122, 255, 0.8)',
+                            'rgba(52, 199, 89, 0.8)',
+                            'rgba(255, 149, 0, 0.8)'
+                        ],
+                        borderColor: [
+                            'rgba(0, 122, 255, 1)',
+                            'rgba(52, 199, 89, 1)',
+                            'rgba(255, 149, 0, 1)'
+                        ],
+                        borderWidth: 2,
+                        hoverOffset: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '60%',
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    if (total === 0) return 'No data';
+                                    const percentage = Math.round((context.raw / total) * 100);
+                                    return `${context.label}: ${context.raw} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const { tenantId, duration } = parseUrlParams();
+            
+            document.getElementById('tenantInput').value = tenantId;
+            document.getElementById('durationSelect').value = duration;
+            
+            // Render empty charts
+            renderTrendsChart([]);
+            renderPlatformChart([]);
+            
+            // Auto-load data
+            loadData();
+        });
+        
+        // Allow Enter key to load data
+        document.getElementById('tenantInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') loadData();
         });
     </script>
 </body>
