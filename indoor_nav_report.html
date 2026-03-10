@@ -313,6 +313,83 @@
             }
         }
         
+        /* Search Section */
+        .search-row {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+        
+        .metric-card-search {
+            background: linear-gradient(135deg, rgba(20, 184, 166, 0.12) 0%, rgba(6, 182, 212, 0.12) 100%);
+            border: 1px solid rgba(20, 184, 166, 0.25);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 32px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 16px;
+        }
+        
+        .search-icon {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, #14b8a6 0%, #06b6d4 100%);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 24px rgba(20, 184, 166, 0.3);
+        }
+        
+        .search-icon svg {
+            width: 36px;
+            height: 36px;
+            fill: white;
+        }
+        
+        .search-content {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .metric-value-hero.teal {
+            background: linear-gradient(135deg, #14b8a6 0%, #06b6d4 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+        }
+        
+        .chart-card-search {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        
+        .wordcloud-container {
+            height: 320px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        #wordcloudCanvas {
+            width: 100%;
+            height: 100%;
+        }
+        
+        @media (max-width: 1024px) {
+            .search-row {
+                grid-template-columns: 1fr;
+            }
+        }
+        
         .control-group input:focus,
         .control-group select:focus {
             outline: none;
@@ -877,8 +954,37 @@
                 </div>
             </div>
         </div>
+        
+        <div class="divider"></div>
+        
+        <!-- Section Title: Search -->
+        <div class="section-title">Key Metrics • Search</div>
+        
+        <!-- Row 6: Search Metrics -->
+        <div class="search-row">
+            <div class="metric-card-search">
+                <div class="search-icon">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+                    </svg>
+                </div>
+                <div class="search-content">
+                    <div class="metric-label-hero">Total Searches</div>
+                    <div class="metric-value-hero teal" id="totalSearches">--</div>
+                    <div class="metric-subtitle-hero">Total manual searches by users for navigation</div>
+                </div>
+            </div>
+            
+            <div class="chart-card-search">
+                <div class="chart-title">Search Terms Word Cloud</div>
+                <div class="wordcloud-container" id="wordcloudContainer">
+                    <canvas id="wordcloudCanvas"></canvas>
+                </div>
+            </div>
+        </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/wordcloud@1.2.2/src/wordcloud2.min.js"></script>
     <script>
         // Register Chart.js datalabels plugin
         Chart.register(ChartDataLabels);
@@ -888,6 +994,7 @@
         const QR_SCAN_TRACK_ID = 'WTbkpuIbpDRGeRZXHVyg6swMZf8';
         const POI_TRACK_ID = 'RyI0lQYmAm7X8u-ju0JPDEuT0WI';
         const QUICK_ACCESS_TRACK_ID = 'UiyouU6Qy0KZNjWKK7-ZdSGWXWg';
+        const SEARCH_TRACK_ID = 'eSTPbxzLYDNmuE5PMGTmkpEc-eA';
         
         const DEFAULT_TENANT_ID = '16007';
         const DEFAULT_DURATION = '30';
@@ -896,6 +1003,7 @@
         let platformChart = null;
         let poiChart = null;
         let quickAccessChart = null;
+        let searchTermsData = [];
         let rawDailyData = [];
         let currentTrendsView = 'daily';
         let cachedTenantId = null;
@@ -1240,6 +1348,37 @@
                 };
                 const quickAccessBreakdownData = await fetchAggregation(quickAccessBreakdownQuery);
                 renderQuickAccessChart(quickAccessBreakdownData?.results || []);
+                
+                // 9. Fetch total searches
+                const searchTotalQuery = {
+                    response: { mimeType: 'application/json' },
+                    request: {
+                        pipeline: [
+                            { source: { trackEvents: { trackTypeId: SEARCH_TRACK_ID }, timeSeries: { period: 'dayRange', first: startMs, last: endMs } } },
+                            { filter: filterExpr },
+                            { group: { fields: [{ count: { sum: 'numEvents' } }] } }
+                        ]
+                    }
+                };
+                const searchTotalData = await fetchAggregation(searchTotalQuery);
+                const totalSearches = (searchTotalData?.results?.[0]?.count) || 0;
+                document.getElementById('totalSearches').textContent = totalSearches.toLocaleString();
+                
+                // 10. Fetch search terms breakdown
+                const searchTermsQuery = {
+                    response: { mimeType: 'application/json' },
+                    request: {
+                        pipeline: [
+                            { source: { trackEvents: { trackTypeId: SEARCH_TRACK_ID }, timeSeries: { period: 'dayRange', first: startMs, last: endMs } } },
+                            { filter: filterExpr },
+                            { group: { group: ['properties.searchTerm'], fields: [{ count: { sum: 'numEvents' } }] } },
+                            { sort: ['-count'] }
+                        ]
+                    }
+                };
+                const searchTermsResult = await fetchAggregation(searchTermsQuery);
+                searchTermsData = searchTermsResult?.results || [];
+                renderWordCloud(searchTermsData);
                 
             } catch (error) {
                 console.error('Error loading data:', error);
@@ -1651,6 +1790,72 @@
             });
         }
         
+        function renderWordCloud(data) {
+            const container = document.getElementById('wordcloudContainer');
+            const canvas = document.getElementById('wordcloudCanvas');
+            
+            // Set canvas dimensions
+            canvas.width = container.offsetWidth || 600;
+            canvas.height = container.offsetHeight || 320;
+            
+            // Filter out empty search terms and prepare word list
+            const filtered = data.filter(d => {
+                const term = d.properties?.searchTerm;
+                return term && term.trim().length > 0;
+            });
+            
+            if (filtered.length === 0) {
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                ctx.font = '16px Inter';
+                ctx.textAlign = 'center';
+                ctx.fillText('No search data available', canvas.width / 2, canvas.height / 2);
+                return;
+            }
+            
+            // Calculate max count for scaling
+            const maxCount = Math.max(...filtered.map(d => d.count));
+            const minSize = 14;
+            const maxSize = 60;
+            
+            // Prepare word list for wordcloud2: [[word, size], ...]
+            const wordList = filtered.slice(0, 50).map(d => {
+                const term = d.properties.searchTerm;
+                const count = d.count;
+                // Scale size based on count
+                const size = minSize + ((count / maxCount) * (maxSize - minSize));
+                return [term, size];
+            });
+            
+            // Teal color palette
+            const colors = [
+                '#14b8a6', '#0d9488', '#0f766e', '#115e59',
+                '#06b6d4', '#0891b2', '#0e7490', '#155e75',
+                '#22d3d1', '#2dd4bf', '#5eead4', '#99f6e4'
+            ];
+            
+            // Clear canvas
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Render word cloud
+            WordCloud(canvas, {
+                list: wordList,
+                gridSize: 8,
+                weightFactor: 1,
+                fontFamily: 'Inter, sans-serif',
+                color: function() {
+                    return colors[Math.floor(Math.random() * colors.length)];
+                },
+                rotateRatio: 0.3,
+                rotationSteps: 2,
+                backgroundColor: 'transparent',
+                shuffle: true,
+                drawOutOfBound: false,
+                shrinkToFit: true
+            });
+        }
+        
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
             const { tenantId, duration } = parseUrlParams();
@@ -1663,6 +1868,7 @@
             renderPlatformChart([]);
             renderPoiChart([]);
             renderQuickAccessChart([]);
+            renderWordCloud([]);
         });
         
         // Allow Enter key to get data
