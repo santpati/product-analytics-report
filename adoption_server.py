@@ -95,6 +95,11 @@ class AdoptionHandler(http.server.SimpleHTTPRequestHandler):
             self.path = '/analytics.html'
             return http.server.SimpleHTTPRequestHandler.do_GET(self)
         
+        # Serve Indoor Navigation Report
+        if path == '/indoor-nav-report' or path == '/indoor-navigation-report':
+            self.path = '/indoor_nav_report.html'
+            return http.server.SimpleHTTPRequestHandler.do_GET(self)
+        
         # Analytics API endpoints
         if path == '/api/analytics/stats':
             self.handle_analytics_stats()

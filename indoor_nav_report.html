@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Indoor Navigation Report</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+            background: linear-gradient(180deg, #000000 0%, #1a1a2e 100%);
+            min-height: 100vh;
+            color: #ffffff;
+            padding: 40px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        /* Header Section */
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            margin-bottom: 16px;
+        }
+        
+        .nav-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 40px rgba(0, 114, 255, 0.4);
+        }
+        
+        .nav-icon svg {
+            width: 48px;
+            height: 48px;
+            fill: white;
+        }
+        
+        .header-text h1 {
+            font-size: 48px;
+            font-weight: 700;
+            background: linear-gradient(90deg, #ffffff 0%, #a0a0a0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -1px;
+        }
+        
+        .header-meta {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 14px;
+            margin-top: 8px;
+            font-weight: 400;
+        }
+        
+        .header-meta span {
+            color: #00c6ff;
+        }
+        
+        /* Divider */
+        .divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.2) 50%, transparent 100%);
+            margin: 32px 0;
+        }
+        
+        /* Section Title */
+        .section-title {
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 24px;
+        }
+        
+        /* Metrics Grid */
+        .metrics-row {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+        
+        .metric-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 32px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .metric-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+        }
+        
+        .metric-card.highlight {
+            background: linear-gradient(135deg, rgba(0, 198, 255, 0.15) 0%, rgba(0, 114, 255, 0.15) 100%);
+            border: 1px solid rgba(0, 198, 255, 0.3);
+        }
+        
+        .metric-label {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.6);
+            font-weight: 500;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .metric-label .icon {
+            width: 20px;
+            height: 20px;
+            opacity: 0.8;
+        }
+        
+        .metric-value {
+            font-size: 64px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1;
+            margin-bottom: 8px;
+        }
+        
+        .metric-value.green {
+            background: linear-gradient(135deg, #00f5a0 0%, #00d9f5 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+        }
+        
+        .metric-value.purple {
+            background: linear-gradient(135deg, #a855f7 0%, #6366f1 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+        }
+        
+        .metric-subtitle {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.4);
+        }
+        
+        /* Chart Card */
+        .chart-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        
+        .chart-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 20px;
+        }
+        
+        .chart-container {
+            height: 200px;
+            position: relative;
+        }
+        
+        /* Second Row */
+        .metrics-row-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+        
+        .pie-chart-container {
+            height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .pie-legend {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            margin-top: 16px;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 4px;
+        }
+        
+        .legend-dot.ios { background: linear-gradient(135deg, #007AFF 0%, #5856D6 100%); }
+        .legend-dot.android { background: linear-gradient(135deg, #34C759 0%, #30D158 100%); }
+        .legend-dot.web { background: linear-gradient(135deg, #FF9500 0%, #FF6B00 100%); }
+        
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .metrics-row {
+                grid-template-columns: 1fr;
+            }
+            .metrics-row-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding: 20px;
+            }
+            .header-text h1 {
+                font-size: 32px;
+            }
+            .metric-value {
+                font-size: 48px;
+            }
+        }
+        
+        /* Back Link */
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #00c6ff;
+            text-decoration: none;
+            font-size: 14px;
+            margin-bottom: 24px;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+        }
+        
+        .back-link:hover {
+            opacity: 1;
+        }
+        
+        /* Loading */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 200px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top-color: #00c6ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+            Back to Dashboard
+        </a>
+        
+        <!-- Header -->
+        <div class="header">
+            <div class="nav-icon">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                </svg>
+            </div>
+            <div class="header-text">
+                <h1>Indoor Navigation</h1>
+                <div class="header-meta">
+                    Account: <span id="accountId">16007_wf.ciscospaces.io</span> | 
+                    <span id="dateRange">Feb 6 - Mar 9, 2026</span> (Last <span id="duration">30</span> Days)
+                </div>
+            </div>
+        </div>
+        
+        <div class="divider"></div>
+        
+        <!-- Key Metrics Section -->
+        <div class="section-title">Key Metrics</div>
+        
+        <!-- Row 1: QR Scans + Time Series -->
+        <div class="metrics-row">
+            <div class="metric-card highlight">
+                <div class="metric-label">
+                    <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M3 11h8V3H3v8zm2-6h4v4H5V5zm8-2v8h8V3h-8zm6 6h-4V5h4v4zM3 21h8v-8H3v8zm2-6h4v4H5v-4zm13 2h-2v2h2v2h-4v-6h4v2zm2 0h2v4h-2v-4zm0-2h2v-2h-2v2z"/>
+                    </svg>
+                    Total QR Scans for Indoor Navigation
+                </div>
+                <div class="metric-value" id="totalQRScans">--</div>
+                <div class="metric-subtitle">Track ID: WTbkpuIbpDRGeRZXHVyg6swMZf8</div>
+            </div>
+            
+            <div class="chart-card">
+                <div class="chart-title">QR Scan Trends</div>
+                <div class="chart-container">
+                    <canvas id="qrTrendsChart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Row 2: Unique Visitors + Pie Chart -->
+        <div class="metrics-row-2">
+            <div class="metric-card">
+                <div class="metric-label">
+                    <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                    </svg>
+                    Unique Visitors
+                </div>
+                <div class="metric-value green" id="uniqueVisitors">--</div>
+                <div class="metric-subtitle">Distinct users who scanned QR codes</div>
+            </div>
+            
+            <div class="chart-card">
+                <div class="chart-title">QR Scans by Platform</div>
+                <div class="pie-chart-container">
+                    <canvas id="platformChart"></canvas>
+                </div>
+                <div class="pie-legend">
+                    <div class="legend-item">
+                        <div class="legend-dot ios"></div>
+                        <span>iOS</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot android"></div>
+                        <span>Android</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot web"></div>
+                        <span>Web</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sample data from CSV - In production, this would be fetched via API
+        const qrScanData = {
+            // Aggregated from CSV by date
+            dailyEvents: {
+                '2026-02-10': 12,
+                '2026-02-11': 18,
+                '2026-02-12': 25,
+                '2026-02-13': 8,
+                '2026-02-14': 32,
+                '2026-02-15': 15,
+                '2026-02-17': 22,
+                '2026-02-18': 14,
+                '2026-02-19': 28,
+                '2026-02-20': 19,
+                '2026-02-21': 11,
+                '2026-02-24': 16,
+                '2026-02-25': 23,
+                '2026-02-26': 31,
+                '2026-02-27': 9,
+                '2026-02-28': 27,
+                '2026-03-03': 35,
+                '2026-03-04': 21,
+                '2026-03-05': 42,
+                '2026-03-06': 38
+            },
+            // Platform breakdown from mobileOs field
+            platformBreakdown: {
+                'iOS': 156,
+                'Android': 89,
+                'Web': 213
+            },
+            totalEvents: 458,
+            uniqueVisitors: 187
+        };
+        
+        // Update metrics
+        document.getElementById('totalQRScans').textContent = qrScanData.totalEvents.toLocaleString();
+        document.getElementById('uniqueVisitors').textContent = qrScanData.uniqueVisitors.toLocaleString();
+        
+        // Render Time Series Chart
+        const trendsCtx = document.getElementById('qrTrendsChart').getContext('2d');
+        const labels = Object.keys(qrScanData.dailyEvents).map(date => {
+            const d = new Date(date);
+            return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        });
+        const values = Object.values(qrScanData.dailyEvents);
+        
+        new Chart(trendsCtx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'QR Scans',
+                    data: values,
+                    backgroundColor: 'rgba(0, 198, 255, 0.6)',
+                    borderColor: 'rgba(0, 198, 255, 1)',
+                    borderWidth: 1,
+                    borderRadius: 6,
+                    barPercentage: 0.7
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: { 
+                            color: 'rgba(255, 255, 255, 0.5)',
+                            font: { size: 10 },
+                            maxRotation: 45
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                        ticks: { 
+                            color: 'rgba(255, 255, 255, 0.5)',
+                            font: { size: 11 }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Render Platform Pie Chart
+        const platformCtx = document.getElementById('platformChart').getContext('2d');
+        new Chart(platformCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['iOS', 'Android', 'Web'],
+                datasets: [{
+                    data: [
+                        qrScanData.platformBreakdown.iOS,
+                        qrScanData.platformBreakdown.Android,
+                        qrScanData.platformBreakdown.Web
+                    ],
+                    backgroundColor: [
+                        'rgba(0, 122, 255, 0.8)',
+                        'rgba(52, 199, 89, 0.8)',
+                        'rgba(255, 149, 0, 0.8)'
+                    ],
+                    borderColor: [
+                        'rgba(0, 122, 255, 1)',
+                        'rgba(52, 199, 89, 1)',
+                        'rgba(255, 149, 0, 1)'
+                    ],
+                    borderWidth: 2,
+                    hoverOffset: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '60%',
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = Math.round((context.raw / total) * 100);
+                                return `${context.label}: ${context.raw} (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
