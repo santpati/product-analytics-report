@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Indoor Navigation Report</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * {
@@ -160,78 +161,157 @@
             margin-bottom: 24px;
         }
         
-        /* Metrics Grid */
-        .metrics-row {
+        /* Row 1: Two Key Metrics */
+        .metrics-row-hero {
             display: grid;
-            grid-template-columns: 1fr 2fr;
-            gap: 24px;
+            grid-template-columns: 1fr 1fr;
+            gap: 32px;
             margin-bottom: 32px;
         }
         
-        .metric-card {
+        .metric-card-hero {
             background: rgba(255, 255, 255, 0.05);
             backdrop-filter: blur(20px);
-            border-radius: 24px;
-            padding: 32px;
+            border-radius: 28px;
+            padding: 40px;
             border: 1px solid rgba(255, 255, 255, 0.1);
             transition: transform 0.3s ease, box-shadow 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 32px;
         }
         
-        .metric-card:hover {
+        .metric-card-hero:hover {
             transform: translateY(-4px);
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
         }
         
-        .metric-card.highlight {
-            background: linear-gradient(135deg, rgba(0, 198, 255, 0.15) 0%, rgba(0, 114, 255, 0.15) 100%);
-            border: 1px solid rgba(0, 198, 255, 0.3);
+        .metric-card-hero.highlight {
+            background: linear-gradient(135deg, rgba(0, 198, 255, 0.12) 0%, rgba(0, 114, 255, 0.12) 100%);
+            border: 1px solid rgba(0, 198, 255, 0.25);
         }
         
-        .metric-label {
-            font-size: 14px;
-            color: rgba(255, 255, 255, 0.6);
+        .metric-card-hero.green-highlight {
+            background: linear-gradient(135deg, rgba(0, 245, 160, 0.12) 0%, rgba(0, 217, 245, 0.12) 100%);
+            border: 1px solid rgba(0, 245, 160, 0.25);
+        }
+        
+        .metric-icon-container {
+            width: 120px;
+            height: 120px;
+            border-radius: 24px;
+            overflow: hidden;
+            flex-shrink: 0;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        
+        .metric-icon-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .metric-content {
+            flex: 1;
+        }
+        
+        .metric-label-hero {
+            font-size: 16px;
+            color: rgba(255, 255, 255, 0.7);
             font-weight: 500;
-            margin-bottom: 8px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            margin-bottom: 12px;
         }
         
-        .metric-label .icon {
-            width: 20px;
-            height: 20px;
-            opacity: 0.8;
-        }
-        
-        .metric-value {
-            font-size: 64px;
+        .metric-value-hero {
+            font-size: 72px;
             font-weight: 700;
             background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
             line-height: 1;
-            margin-bottom: 8px;
+            margin-bottom: 12px;
         }
         
-        .metric-value.green {
+        .metric-value-hero.green {
             background: linear-gradient(135deg, #00f5a0 0%, #00d9f5 100%);
             -webkit-background-clip: text;
             background-clip: text;
         }
         
-        .metric-value.purple {
-            background: linear-gradient(135deg, #a855f7 0%, #6366f1 100%);
-            -webkit-background-clip: text;
-            background-clip: text;
-        }
-        
-        .metric-subtitle {
+        .metric-subtitle-hero {
             font-size: 13px;
             color: rgba(255, 255, 255, 0.4);
         }
         
-        /* Chart Card */
+        /* Row 2: Trends Chart */
+        .trends-row {
+            margin-bottom: 32px;
+        }
+        
+        .chart-card-full {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 28px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+        
+        .chart-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.9);
+        }
+        
+        .view-toggle {
+            display: flex;
+            gap: 4px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 4px;
+        }
+        
+        .view-toggle button {
+            padding: 8px 16px;
+            font-size: 13px;
+            font-weight: 500;
+            border: none;
+            border-radius: 8px;
+            background: transparent;
+            color: rgba(255, 255, 255, 0.5);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+        
+        .view-toggle button:hover {
+            color: rgba(255, 255, 255, 0.8);
+        }
+        
+        .view-toggle button.active {
+            background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%);
+            color: #fff;
+        }
+        
+        .chart-container-large {
+            height: 280px;
+            position: relative;
+        }
+        
+        /* Row 3: Platform Breakdown */
+        .platform-row {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 24px;
+        }
+        
         .chart-card {
             background: rgba(255, 255, 255, 0.03);
             backdrop-filter: blur(20px);
@@ -240,66 +320,70 @@
             border: 1px solid rgba(255, 255, 255, 0.08);
         }
         
-        .chart-title {
-            font-size: 16px;
-            font-weight: 600;
-            color: rgba(255, 255, 255, 0.9);
-            margin-bottom: 20px;
-        }
-        
-        .chart-container {
-            height: 200px;
-            position: relative;
-        }
-        
-        /* Second Row */
-        .metrics-row-2 {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 24px;
-            margin-bottom: 32px;
+        .pie-chart-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 60px;
         }
         
         .pie-chart-container {
-            height: 200px;
+            height: 220px;
+            width: 220px;
+        }
+        
+        .pie-legend-vertical {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        
+        .legend-item-large {
             display: flex;
             align-items: center;
-            justify-content: center;
+            gap: 12px;
         }
         
-        .pie-legend {
-            display: flex;
-            justify-content: center;
-            gap: 24px;
-            margin-top: 16px;
-            flex-wrap: wrap;
-        }
-        
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 13px;
-            color: rgba(255, 255, 255, 0.7);
-        }
-        
-        .legend-dot {
-            width: 12px;
-            height: 12px;
+        .legend-dot-large {
+            width: 16px;
+            height: 16px;
             border-radius: 4px;
         }
         
-        .legend-dot.ios { background: linear-gradient(135deg, #007AFF 0%, #5856D6 100%); }
-        .legend-dot.android { background: linear-gradient(135deg, #34C759 0%, #30D158 100%); }
-        .legend-dot.web { background: linear-gradient(135deg, #FF9500 0%, #FF6B00 100%); }
+        .legend-dot-large.ios { background: linear-gradient(135deg, #007AFF 0%, #5856D6 100%); }
+        .legend-dot-large.android { background: linear-gradient(135deg, #34C759 0%, #30D158 100%); }
+        .legend-dot-large.web { background: linear-gradient(135deg, #FF9500 0%, #FF6B00 100%); }
+        
+        .legend-text {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .legend-label {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.8);
+            font-weight: 500;
+        }
+        
+        .legend-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #fff;
+        }
+        
+        .legend-percent {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.5);
+        }
         
         /* Responsive */
         @media (max-width: 1024px) {
-            .metrics-row {
+            .metrics-row-hero {
                 grid-template-columns: 1fr;
             }
-            .metrics-row-2 {
-                grid-template-columns: 1fr;
+            .pie-chart-wrapper {
+                flex-direction: column;
+                gap: 24px;
             }
         }
         
@@ -310,8 +394,12 @@
             .header-text h1 {
                 font-size: 32px;
             }
-            .metric-value {
+            .metric-value-hero {
                 font-size: 48px;
+            }
+            .metric-card-hero {
+                flex-direction: column;
+                text-align: center;
             }
             .controls {
                 flex-direction: column;
@@ -376,19 +464,6 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
-        
-        /* Empty State */
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: rgba(255, 255, 255, 0.5);
-        }
-        
-        .empty-state .icon {
-            font-size: 48px;
-            margin-bottom: 16px;
-            opacity: 0.5;
-        }
     </style>
 </head>
 <body>
@@ -444,60 +519,84 @@
         
         <div class="divider"></div>
         
-        <!-- Key Metrics Section -->
+        <!-- Section Title -->
         <div class="section-title">Key Metrics • QR Code Scanning</div>
         
-        <!-- Row 1: QR Scans + Time Series -->
-        <div class="metrics-row">
-            <div class="metric-card highlight">
-                <div class="metric-label">
-                    <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M3 11h8V3H3v8zm2-6h4v4H5V5zm8-2v8h8V3h-8zm6 6h-4V5h4v4zM3 21h8v-8H3v8zm2-6h4v4H5v-4zm13 2h-2v2h2v2h-4v-6h4v2zm2 0h2v4h-2v-4zm0-2h2v-2h-2v2z"/>
-                    </svg>
-                    Total QR Scans for Indoor Navigation
+        <!-- Row 1: Two Hero Metrics -->
+        <div class="metrics-row-hero">
+            <div class="metric-card-hero highlight">
+                <div class="metric-icon-container">
+                    <img src="qr-scan-icon.png" alt="QR Scan">
                 </div>
-                <div class="metric-value" id="totalQRScans">--</div>
-                <div class="metric-subtitle">Track ID: WTbkpuIbpDRGeRZXHVyg6swMZf8</div>
+                <div class="metric-content">
+                    <div class="metric-label-hero">Total QR Scans for Indoor Navigation</div>
+                    <div class="metric-value-hero" id="totalQRScans">--</div>
+                    <div class="metric-subtitle-hero">Track ID: WTbkpuIbpDRGeRZXHVyg6swMZf8</div>
+                </div>
             </div>
             
-            <div class="chart-card">
-                <div class="chart-title">QR Scan Trends (Daily)</div>
-                <div class="chart-container">
+            <div class="metric-card-hero green-highlight">
+                <div class="metric-icon-container">
+                    <img src="visitor-icon.png" alt="Visitors">
+                </div>
+                <div class="metric-content">
+                    <div class="metric-label-hero">Unique Visitors</div>
+                    <div class="metric-value-hero green" id="uniqueVisitors">--</div>
+                    <div class="metric-subtitle-hero">Distinct users who scanned QR codes</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Row 2: Trends Chart -->
+        <div class="trends-row">
+            <div class="chart-card-full">
+                <div class="chart-header">
+                    <div class="chart-title">QR Scan Trends</div>
+                    <div class="view-toggle">
+                        <button class="active" data-view="daily" onclick="setTrendsView('daily')">Daily</button>
+                        <button data-view="weekly" onclick="setTrendsView('weekly')">Weekly</button>
+                        <button data-view="monthly" onclick="setTrendsView('monthly')">Monthly</button>
+                    </div>
+                </div>
+                <div class="chart-container-large">
                     <canvas id="qrTrendsChart"></canvas>
                 </div>
             </div>
         </div>
         
-        <!-- Row 2: Unique Visitors + Pie Chart -->
-        <div class="metrics-row-2">
-            <div class="metric-card">
-                <div class="metric-label">
-                    <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-                    </svg>
-                    Unique Visitors
-                </div>
-                <div class="metric-value green" id="uniqueVisitors">--</div>
-                <div class="metric-subtitle">Distinct users who scanned QR codes</div>
-            </div>
-            
+        <!-- Row 3: Platform Breakdown -->
+        <div class="platform-row">
             <div class="chart-card">
-                <div class="chart-title">QR Scans by Platform</div>
-                <div class="pie-chart-container">
-                    <canvas id="platformChart"></canvas>
-                </div>
-                <div class="pie-legend">
-                    <div class="legend-item">
-                        <div class="legend-dot ios"></div>
-                        <span>iOS (<span id="iosCount">0</span>)</span>
+                <div class="chart-title" style="margin-bottom: 24px;">QR Scans by Platform</div>
+                <div class="pie-chart-wrapper">
+                    <div class="pie-chart-container">
+                        <canvas id="platformChart"></canvas>
                     </div>
-                    <div class="legend-item">
-                        <div class="legend-dot android"></div>
-                        <span>Android (<span id="androidCount">0</span>)</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-dot web"></div>
-                        <span>Web (<span id="webCount">0</span>)</span>
+                    <div class="pie-legend-vertical">
+                        <div class="legend-item-large">
+                            <div class="legend-dot-large ios"></div>
+                            <div class="legend-text">
+                                <span class="legend-label">iOS</span>
+                                <span class="legend-value" id="iosCount">0</span>
+                                <span class="legend-percent" id="iosPercent">0%</span>
+                            </div>
+                        </div>
+                        <div class="legend-item-large">
+                            <div class="legend-dot-large android"></div>
+                            <div class="legend-text">
+                                <span class="legend-label">Android</span>
+                                <span class="legend-value" id="androidCount">0</span>
+                                <span class="legend-percent" id="androidPercent">0%</span>
+                            </div>
+                        </div>
+                        <div class="legend-item-large">
+                            <div class="legend-dot-large web"></div>
+                            <div class="legend-text">
+                                <span class="legend-label">Web</span>
+                                <span class="legend-value" id="webCount">0</span>
+                                <span class="legend-percent" id="webPercent">0%</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -505,6 +604,9 @@
     </div>
 
     <script>
+        // Register Chart.js datalabels plugin
+        Chart.register(ChartDataLabels);
+        
         const BASE_URL = '/api/pendo';
         const INDOOR_NAV_SUFFIX = '_wf.ciscospaces.io';
         const QR_SCAN_TRACK_ID = 'WTbkpuIbpDRGeRZXHVyg6swMZf8';
@@ -514,8 +616,9 @@
         
         let trendsChart = null;
         let platformChart = null;
+        let rawDailyData = [];
+        let currentTrendsView = 'daily';
         
-        // Parse URL parameters
         function parseUrlParams() {
             const path = window.location.pathname;
             let tenantId = DEFAULT_TENANT_ID;
@@ -527,7 +630,6 @@
             const durationMatch = path.match(/duration=(\d+)/);
             if (durationMatch) duration = durationMatch[1];
             
-            // Also check query params
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('tenant')) tenantId = urlParams.get('tenant');
             if (urlParams.get('duration')) duration = urlParams.get('duration');
@@ -588,7 +690,6 @@
             const accountId = `${tenantId}${INDOOR_NAV_SUFFIX}`;
             const { startMs, endMs, startDate, endDate } = getDateRange(days);
             
-            // Update header
             document.getElementById('accountDisplay').textContent = accountId;
             document.getElementById('dateRangeDisplay').textContent = 
                 `${formatDateRange(startDate, endDate)} (Last ${days} Days)`;
@@ -624,7 +725,7 @@
                 const uniqueVisitors = uniqueData?.results?.length || 0;
                 document.getElementById('uniqueVisitors').textContent = uniqueVisitors.toLocaleString();
                 
-                // 3. Fetch daily trends
+                // 3. Fetch daily trends (store raw data for aggregation)
                 const trendsQuery = {
                     response: { mimeType: 'application/json' },
                     request: {
@@ -637,16 +738,17 @@
                     }
                 };
                 const trendsData = await fetchAggregation(trendsQuery);
-                renderTrendsChart(trendsData?.results || []);
+                rawDailyData = trendsData?.results || [];
+                renderTrendsChart(currentTrendsView);
                 
-                // 4. Fetch platform breakdown (by userAgent/mobileOs proxy)
+                // 4. Fetch platform breakdown by mobileOs
                 const platformQuery = {
                     response: { mimeType: 'application/json' },
                     request: {
                         pipeline: [
                             { source: { trackEvents: { trackTypeId: QR_SCAN_TRACK_ID }, timeSeries: { period: 'dayRange', first: startMs, last: endMs } } },
                             { filter: `accountId == "${accountId}"` },
-                            { group: { group: ['userAgent'], fields: [{ count: { sum: 'numEvents' } }] } }
+                            { group: { group: ['mobileOs'], fields: [{ count: { sum: 'numEvents' } }] } }
                         ]
                     }
                 };
@@ -661,16 +763,71 @@
             showLoading(false);
         }
         
-        function renderTrendsChart(data) {
+        function setTrendsView(view) {
+            currentTrendsView = view;
+            document.querySelectorAll('.view-toggle button').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.view === view);
+            });
+            renderTrendsChart(view);
+        }
+        
+        function aggregateData(data, view) {
+            if (view === 'daily') {
+                return data.map(d => ({
+                    label: new Date(d.day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                    value: d.count || 0
+                }));
+            }
+            
+            if (view === 'weekly') {
+                const weeks = {};
+                data.forEach(d => {
+                    const date = new Date(d.day);
+                    const weekStart = new Date(date);
+                    weekStart.setDate(date.getDate() - date.getDay());
+                    const key = weekStart.toISOString().split('T')[0];
+                    if (!weeks[key]) {
+                        weeks[key] = { start: weekStart, total: 0 };
+                    }
+                    weeks[key].total += (d.count || 0);
+                });
+                return Object.entries(weeks)
+                    .sort(([a], [b]) => a.localeCompare(b))
+                    .map(([key, val]) => ({
+                        label: `Week of ${val.start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
+                        value: val.total
+                    }));
+            }
+            
+            if (view === 'monthly') {
+                const months = {};
+                data.forEach(d => {
+                    const date = new Date(d.day);
+                    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                    if (!months[key]) {
+                        months[key] = { date: new Date(date.getFullYear(), date.getMonth(), 1), total: 0 };
+                    }
+                    months[key].total += (d.count || 0);
+                });
+                return Object.entries(months)
+                    .sort(([a], [b]) => a.localeCompare(b))
+                    .map(([key, val]) => ({
+                        label: val.date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+                        value: val.total
+                    }));
+            }
+            
+            return [];
+        }
+        
+        function renderTrendsChart(view) {
             const ctx = document.getElementById('qrTrendsChart').getContext('2d');
             
             if (trendsChart) trendsChart.destroy();
             
-            const labels = data.map(d => {
-                const date = new Date(d.day);
-                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-            });
-            const values = data.map(d => d.count || 0);
+            const aggregated = aggregateData(rawDailyData, view);
+            const labels = aggregated.map(d => d.label);
+            const values = aggregated.map(d => d.value);
             
             trendsChart = new Chart(ctx, {
                 type: 'bar',
@@ -679,23 +836,38 @@
                     datasets: [{
                         label: 'QR Scans',
                         data: values.length ? values : [0],
-                        backgroundColor: 'rgba(0, 198, 255, 0.6)',
+                        backgroundColor: 'rgba(0, 198, 255, 0.7)',
                         borderColor: 'rgba(0, 198, 255, 1)',
                         borderWidth: 1,
-                        borderRadius: 6,
+                        borderRadius: 8,
                         barPercentage: 0.7
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
+                    plugins: {
+                        legend: { display: false },
+                        datalabels: {
+                            color: '#fff',
+                            anchor: 'end',
+                            align: 'top',
+                            offset: 4,
+                            font: {
+                                weight: '600',
+                                size: 12
+                            },
+                            formatter: function(value) {
+                                return value > 0 ? value : '';
+                            }
+                        }
+                    },
                     scales: {
                         x: {
                             grid: { display: false },
                             ticks: { 
-                                color: 'rgba(255, 255, 255, 0.5)',
-                                font: { size: 10 },
+                                color: 'rgba(255, 255, 255, 0.6)',
+                                font: { size: 11 },
                                 maxRotation: 45
                             }
                         },
@@ -703,11 +875,13 @@
                             beginAtZero: true,
                             grid: { color: 'rgba(255, 255, 255, 0.05)' },
                             ticks: { 
-                                color: 'rgba(255, 255, 255, 0.5)',
-                                font: { size: 11 },
-                                stepSize: 1
+                                color: 'rgba(255, 255, 255, 0.6)',
+                                font: { size: 12 }
                             }
                         }
+                    },
+                    layout: {
+                        padding: { top: 30 }
                     }
                 }
             });
@@ -718,29 +892,30 @@
             
             if (platformChart) platformChart.destroy();
             
-            // Categorize by platform based on userAgent
             let ios = 0, android = 0, web = 0;
             
             data.forEach(d => {
-                const ua = (d.userAgent || '').toLowerCase();
+                const os = (d.mobileOs || '').toLowerCase();
                 const count = d.count || 0;
                 
-                if (ua.includes('iphone') || ua.includes('ipad') || ua.includes('ios') || 
-                    ua.includes('ciscospaces.wayfinding.clip') || ua.includes('com.ciscospaces')) {
+                if (os.includes('ios') || os === 'iphone' || os === 'ipad') {
                     ios += count;
-                } else if (ua.includes('android') || ua.includes('cisco.spaces.wayfinding')) {
+                } else if (os.includes('android')) {
                     android += count;
                 } else {
                     web += count;
                 }
             });
             
-            // Update legend counts
-            document.getElementById('iosCount').textContent = ios;
-            document.getElementById('androidCount').textContent = android;
-            document.getElementById('webCount').textContent = web;
-            
             const total = ios + android + web;
+            
+            // Update legend
+            document.getElementById('iosCount').textContent = ios.toLocaleString();
+            document.getElementById('androidCount').textContent = android.toLocaleString();
+            document.getElementById('webCount').textContent = web.toLocaleString();
+            document.getElementById('iosPercent').textContent = total > 0 ? `${Math.round((ios / total) * 100)}%` : '0%';
+            document.getElementById('androidPercent').textContent = total > 0 ? `${Math.round((android / total) * 100)}%` : '0%';
+            document.getElementById('webPercent').textContent = total > 0 ? `${Math.round((web / total) * 100)}%` : '0%';
             
             platformChart = new Chart(ctx, {
                 type: 'doughnut',
@@ -749,9 +924,9 @@
                     datasets: [{
                         data: total > 0 ? [ios, android, web] : [1, 1, 1],
                         backgroundColor: [
-                            'rgba(0, 122, 255, 0.8)',
-                            'rgba(52, 199, 89, 0.8)',
-                            'rgba(255, 149, 0, 0.8)'
+                            'rgba(0, 122, 255, 0.85)',
+                            'rgba(52, 199, 89, 0.85)',
+                            'rgba(255, 149, 0, 0.85)'
                         ],
                         borderColor: [
                             'rgba(0, 122, 255, 1)',
@@ -759,21 +934,22 @@
                             'rgba(255, 149, 0, 1)'
                         ],
                         borderWidth: 2,
-                        hoverOffset: 8
+                        hoverOffset: 10
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    cutout: '60%',
+                    cutout: '65%',
                     plugins: {
                         legend: { display: false },
+                        datalabels: { display: false },
                         tooltip: {
                             callbacks: {
                                 label: function(context) {
                                     if (total === 0) return 'No data';
                                     const percentage = Math.round((context.raw / total) * 100);
-                                    return `${context.label}: ${context.raw} (${percentage}%)`;
+                                    return `${context.label}: ${context.raw.toLocaleString()} (${percentage}%)`;
                                 }
                             }
                         }
@@ -790,7 +966,7 @@
             document.getElementById('durationSelect').value = duration;
             
             // Render empty charts
-            renderTrendsChart([]);
+            renderTrendsChart('daily');
             renderPlatformChart([]);
             
             // Auto-load data
