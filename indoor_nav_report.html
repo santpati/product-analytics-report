@@ -108,6 +108,11 @@
             transition: all 0.2s;
         }
         
+        #siteSelect {
+            min-width: 320px;
+            max-width: 450px;
+        }
+        
         .control-group input:focus,
         .control-group select:focus {
             outline: none;
@@ -511,6 +516,12 @@
                     <option value="90">Last 90 Days</option>
                 </select>
             </div>
+            <div class="control-group">
+                <label>Sites</label>
+                <select id="siteSelect">
+                    <option value="all" selected>All Sites</option>
+                </select>
+            </div>
             <button class="load-btn" id="loadBtn" onclick="loadData()">
                 Load Data
             </button>
@@ -617,6 +628,7 @@
         let platformChart = null;
         let rawDailyData = [];
         let currentTrendsView = 'daily';
+        let cachedTenantId = null;
         
         function parseUrlParams() {
             const path = window.location.pathname;
@@ -675,9 +687,55 @@
             }
         }
         
+        async function fetchSites(accountId, startMs, endMs) {
+            const sitesQuery = {
+                response: { mimeType: 'application/json' },
+                request: {
+                    pipeline: [
+                        { source: { trackEvents: { trackTypeId: QR_SCAN_TRACK_ID }, timeSeries: { period: 'dayRange', first: startMs, last: endMs } } },
+                        { filter: `accountId == "${accountId}"` },
+                        { group: { group: ['properties.locationHierarchy'], fields: [{ count: { sum: 'numEvents' } }] } },
+                        { sort: ['-count'] }
+                    ]
+                }
+            };
+            const sitesData = await fetchAggregation(sitesQuery);
+            return sitesData?.results || [];
+        }
+        
+        function updateSitesDropdown(sites) {
+            const siteSelect = document.getElementById('siteSelect');
+            const currentValue = siteSelect.value;
+            
+            siteSelect.innerHTML = '<option value="all" selected>All Sites</option>';
+            
+            sites.forEach(site => {
+                const location = site.properties?.locationHierarchy;
+                if (location) {
+                    const option = document.createElement('option');
+                    option.value = location;
+                    option.textContent = `${location} (${site.count})`;
+                    siteSelect.appendChild(option);
+                }
+            });
+            
+            if (currentValue && currentValue !== 'all') {
+                const exists = Array.from(siteSelect.options).some(opt => opt.value === currentValue);
+                if (exists) siteSelect.value = currentValue;
+            }
+        }
+        
+        function buildSiteFilter(accountId, selectedSite) {
+            if (selectedSite === 'all') {
+                return `accountId == "${accountId}"`;
+            }
+            return `accountId == "${accountId}" && properties.locationHierarchy == "${selectedSite}"`;
+        }
+        
         async function loadData() {
             const tenantId = document.getElementById('tenantInput').value.trim();
             const days = parseInt(document.getElementById('durationSelect').value);
+            const selectedSite = document.getElementById('siteSelect').value;
             
             if (!tenantId) {
                 alert('Please enter a tenant ID');
@@ -694,13 +752,22 @@
                 `${formatDateRange(startDate, endDate)} (Last ${days} Days)`;
             
             try {
+                // Fetch sites if tenant changed
+                if (cachedTenantId !== tenantId) {
+                    const sites = await fetchSites(accountId, startMs, endMs);
+                    updateSitesDropdown(sites);
+                    cachedTenantId = tenantId;
+                }
+                
+                const filterExpr = buildSiteFilter(accountId, selectedSite);
+                
                 // 1. Fetch total QR scans
                 const totalQuery = {
                     response: { mimeType: 'application/json' },
                     request: {
                         pipeline: [
                             { source: { trackEvents: { trackTypeId: QR_SCAN_TRACK_ID }, timeSeries: { period: 'dayRange', first: startMs, last: endMs } } },
-                            { filter: `accountId == "${accountId}"` },
+                            { filter: filterExpr },
                             { group: { fields: [{ count: { sum: 'numEvents' } }] } }
                         ]
                     }
@@ -715,7 +782,7 @@
                     request: {
                         pipeline: [
                             { source: { trackEvents: { trackTypeId: QR_SCAN_TRACK_ID }, timeSeries: { period: 'dayRange', first: startMs, last: endMs } } },
-                            { filter: `accountId == "${accountId}"` },
+                            { filter: filterExpr },
                             { group: { group: ['visitorId'], fields: [{ count: { count: null } }] } }
                         ]
                     }
@@ -730,7 +797,7 @@
                     request: {
                         pipeline: [
                             { source: { trackEvents: { trackTypeId: QR_SCAN_TRACK_ID }, timeSeries: { period: 'dayRange', first: startMs, last: endMs } } },
-                            { filter: `accountId == "${accountId}"` },
+                            { filter: filterExpr },
                             { group: { group: ['day'], fields: [{ count: { sum: 'numEvents' } }] } },
                             { sort: ['day'] }
                         ]
@@ -746,7 +813,7 @@
                     request: {
                         pipeline: [
                             { source: { trackEvents: { trackTypeId: QR_SCAN_TRACK_ID }, timeSeries: { period: 'dayRange', first: startMs, last: endMs } } },
-                            { filter: `accountId == "${accountId}"` },
+                            { filter: filterExpr },
                             { group: { group: ['properties.mobileOs'], fields: [{ count: { sum: 'numEvents' } }] } }
                         ]
                     }
@@ -761,6 +828,11 @@
             
             showLoading(false);
         }
+        
+        // Auto-refresh when site selection changes
+        document.getElementById('siteSelect').addEventListener('change', function() {
+            loadData();
+        });
         
         function setTrendsView(view) {
             currentTrendsView = view;
