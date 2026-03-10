@@ -175,6 +175,75 @@
             font-weight: 600;
         }
         
+        /* POI Section */
+        .poi-row {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+        
+        .metric-card-poi {
+            background: linear-gradient(135deg, rgba(168, 85, 247, 0.12) 0%, rgba(99, 102, 241, 0.12) 100%);
+            border: 1px solid rgba(168, 85, 247, 0.25);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 32px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 16px;
+        }
+        
+        .poi-icon {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, #a855f7 0%, #6366f1 100%);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 24px rgba(168, 85, 247, 0.3);
+        }
+        
+        .poi-icon svg {
+            width: 36px;
+            height: 36px;
+            fill: white;
+        }
+        
+        .poi-content {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .metric-value-hero.purple {
+            background: linear-gradient(135deg, #a855f7 0%, #6366f1 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+        }
+        
+        .chart-card-poi {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        
+        .poi-chart-container {
+            height: 320px;
+            position: relative;
+        }
+        
+        @media (max-width: 1024px) {
+            .poi-row {
+                grid-template-columns: 1fr;
+            }
+        }
+        
         .control-group input:focus,
         .control-group select:focus {
             outline: none;
@@ -683,6 +752,34 @@
                 </div>
             </div>
         </div>
+        
+        <div class="divider"></div>
+        
+        <!-- Section Title: POI -->
+        <div class="section-title">Key Metrics • Point of Interest (POI)</div>
+        
+        <!-- Row 4: POI Metrics -->
+        <div class="poi-row">
+            <div class="metric-card-poi">
+                <div class="poi-icon">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                    </svg>
+                </div>
+                <div class="poi-content">
+                    <div class="metric-label-hero">Total POI Selected</div>
+                    <div class="metric-value-hero purple" id="totalPOI">--</div>
+                    <div class="metric-subtitle-hero">Total Point of Interest selected for navigation</div>
+                </div>
+            </div>
+            
+            <div class="chart-card-poi">
+                <div class="chart-title">Top 10 POIs Selected</div>
+                <div class="poi-chart-container">
+                    <canvas id="poiChart"></canvas>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -692,15 +789,35 @@
         const BASE_URL = '/api/pendo';
         const INDOOR_NAV_SUFFIX = '_wf.ciscospaces.io';
         const QR_SCAN_TRACK_ID = 'WTbkpuIbpDRGeRZXHVyg6swMZf8';
+        const POI_TRACK_ID = 'RyI0lQYmAm7X8u-ju0JPDEuT0WI';
         
         const DEFAULT_TENANT_ID = '16007';
         const DEFAULT_DURATION = '30';
         
         let trendsChart = null;
         let platformChart = null;
+        let poiChart = null;
         let rawDailyData = [];
         let currentTrendsView = 'daily';
         let cachedTenantId = null;
+        
+        function parsePoiInteracted(poiString) {
+            if (!poiString) return { name: 'Unknown', typeCode: 'unknown' };
+            
+            const nameMatch = poiString.match(/name=([^,}]+)/);
+            const typeMatch = poiString.match(/typeCode=([^,}]+)/);
+            
+            const name = nameMatch ? nameMatch[1].trim() : 'Unknown';
+            const typeCode = typeMatch ? typeMatch[1].trim() : 'unknown';
+            
+            return { name, typeCode };
+        }
+        
+        function formatTypeCode(typeCode) {
+            return typeCode.split('-').map(word => 
+                word.charAt(0).toUpperCase() + word.slice(1)
+            ).join(' ');
+        }
         
         function parseUrlParams() {
             const path = window.location.pathname;
@@ -956,6 +1073,36 @@
                 const platformData = await fetchAggregation(platformQuery);
                 renderPlatformChart(platformData?.results || []);
                 
+                // 5. Fetch total POI selected
+                const poiTotalQuery = {
+                    response: { mimeType: 'application/json' },
+                    request: {
+                        pipeline: [
+                            { source: { trackEvents: { trackTypeId: POI_TRACK_ID }, timeSeries: { period: 'dayRange', first: startMs, last: endMs } } },
+                            { filter: filterExpr },
+                            { group: { fields: [{ count: { sum: 'numEvents' } }] } }
+                        ]
+                    }
+                };
+                const poiTotalData = await fetchAggregation(poiTotalQuery);
+                const totalPOI = (poiTotalData?.results?.[0]?.count) || 0;
+                document.getElementById('totalPOI').textContent = totalPOI.toLocaleString();
+                
+                // 6. Fetch top 10 POIs by poiInteracted
+                const poiBreakdownQuery = {
+                    response: { mimeType: 'application/json' },
+                    request: {
+                        pipeline: [
+                            { source: { trackEvents: { trackTypeId: POI_TRACK_ID }, timeSeries: { period: 'dayRange', first: startMs, last: endMs } } },
+                            { filter: filterExpr },
+                            { group: { group: ['properties.poiInteracted'], fields: [{ count: { sum: 'numEvents' } }] } },
+                            { sort: ['-count'] }
+                        ]
+                    }
+                };
+                const poiBreakdownData = await fetchAggregation(poiBreakdownQuery);
+                renderPoiChart(poiBreakdownData?.results || []);
+                
             } catch (error) {
                 console.error('Error loading data:', error);
                 alert('Error loading data. Check console for details.');
@@ -1173,6 +1320,107 @@
             });
         }
         
+        function renderPoiChart(data) {
+            const ctx = document.getElementById('poiChart').getContext('2d');
+            
+            if (poiChart) poiChart.destroy();
+            
+            // Process and get top 10 POIs
+            const top10 = data.slice(0, 10).map(d => {
+                const poiString = d.properties?.poiInteracted || '';
+                const { name, typeCode } = parsePoiInteracted(poiString);
+                return {
+                    label: name.length > 30 ? name.substring(0, 30) + '...' : name,
+                    fullLabel: `${name} (${formatTypeCode(typeCode)})`,
+                    typeCode: formatTypeCode(typeCode),
+                    count: d.count || 0
+                };
+            });
+            
+            // Colors for different bars (gradient effect)
+            const colors = [
+                'rgba(168, 85, 247, 0.85)',
+                'rgba(139, 92, 246, 0.85)',
+                'rgba(124, 58, 237, 0.85)',
+                'rgba(109, 40, 217, 0.85)',
+                'rgba(91, 33, 182, 0.85)',
+                'rgba(76, 29, 149, 0.85)',
+                'rgba(88, 28, 135, 0.85)',
+                'rgba(107, 33, 168, 0.85)',
+                'rgba(126, 34, 206, 0.85)',
+                'rgba(147, 51, 234, 0.85)'
+            ];
+            
+            poiChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: top10.length ? top10.map(d => d.label) : ['No Data'],
+                    datasets: [{
+                        label: 'POI Selections',
+                        data: top10.length ? top10.map(d => d.count) : [0],
+                        backgroundColor: colors.slice(0, top10.length),
+                        borderColor: colors.slice(0, top10.length).map(c => c.replace('0.85', '1')),
+                        borderWidth: 1,
+                        borderRadius: 6,
+                        barPercentage: 0.75
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        datalabels: {
+                            color: '#fff',
+                            anchor: 'end',
+                            align: 'end',
+                            offset: 4,
+                            font: {
+                                weight: '600',
+                                size: 11
+                            },
+                            formatter: function(value) {
+                                return value > 0 ? value : '';
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                title: function(context) {
+                                    const idx = context[0].dataIndex;
+                                    return top10[idx]?.fullLabel || '';
+                                },
+                                label: function(context) {
+                                    return `Selections: ${context.raw.toLocaleString()}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: { 
+                                color: 'rgba(255, 255, 255, 0.6)',
+                                font: { size: 11 }
+                            }
+                        },
+                        y: {
+                            grid: { display: false },
+                            ticks: { 
+                                color: 'rgba(255, 255, 255, 0.8)',
+                                font: { size: 11 },
+                                crossAlign: 'far'
+                            }
+                        }
+                    },
+                    layout: {
+                        padding: { right: 40 }
+                    }
+                }
+            });
+        }
+        
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
             const { tenantId, duration } = parseUrlParams();
@@ -1183,6 +1431,7 @@
             // Render empty charts
             renderTrendsChart('daily');
             renderPlatformChart([]);
+            renderPoiChart([]);
         });
         
         // Allow Enter key to get data
