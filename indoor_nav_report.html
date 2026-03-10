@@ -344,15 +344,14 @@
             gap: 12px;
         }
         
-        .legend-dot-large {
-            width: 16px;
-            height: 16px;
-            border-radius: 4px;
+        .legend-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            object-fit: contain;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 4px;
         }
-        
-        .legend-dot-large.ios { background: linear-gradient(135deg, #007AFF 0%, #5856D6 100%); }
-        .legend-dot-large.android { background: linear-gradient(135deg, #34C759 0%, #30D158 100%); }
-        .legend-dot-large.web { background: linear-gradient(135deg, #FF9500 0%, #FF6B00 100%); }
         
         .legend-text {
             display: flex;
@@ -531,7 +530,7 @@
                 <div class="metric-content">
                     <div class="metric-label-hero">Total QR Scans for Indoor Navigation</div>
                     <div class="metric-value-hero" id="totalQRScans">--</div>
-                    <div class="metric-subtitle-hero">Track ID: WTbkpuIbpDRGeRZXHVyg6swMZf8</div>
+                    <div class="metric-subtitle-hero">Number of QR code scan by the users</div>
                 </div>
             </div>
             
@@ -574,7 +573,7 @@
                     </div>
                     <div class="pie-legend-vertical">
                         <div class="legend-item-large">
-                            <div class="legend-dot-large ios"></div>
+                            <img src="icon-ios.png" alt="iOS" class="legend-icon">
                             <div class="legend-text">
                                 <span class="legend-label">iOS</span>
                                 <span class="legend-value" id="iosCount">0</span>
@@ -582,7 +581,7 @@
                             </div>
                         </div>
                         <div class="legend-item-large">
-                            <div class="legend-dot-large android"></div>
+                            <img src="icon-android.png" alt="Android" class="legend-icon">
                             <div class="legend-text">
                                 <span class="legend-label">Android</span>
                                 <span class="legend-value" id="androidCount">0</span>
@@ -590,7 +589,7 @@
                             </div>
                         </div>
                         <div class="legend-item-large">
-                            <div class="legend-dot-large web"></div>
+                            <img src="icon-web.png" alt="Web" class="legend-icon">
                             <div class="legend-text">
                                 <span class="legend-label">Web</span>
                                 <span class="legend-value" id="webCount">0</span>
@@ -942,10 +941,22 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    cutout: '65%',
+                    cutout: '55%',
                     plugins: {
                         legend: { display: false },
-                        datalabels: { display: false },
+                        datalabels: {
+                            color: '#fff',
+                            font: {
+                                weight: 'bold',
+                                size: 13
+                            },
+                            formatter: function(value, context) {
+                                if (total === 0 || value === 0) return '';
+                                const percentage = Math.round((value / total) * 100);
+                                return percentage >= 5 ? `${value}\n(${percentage}%)` : '';
+                            },
+                            textAlign: 'center'
+                        },
                         tooltip: {
                             callbacks: {
                                 label: function(context) {
