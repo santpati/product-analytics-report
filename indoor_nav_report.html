@@ -1465,14 +1465,14 @@
                                 <div class="export-desc">Standalone file with full graphics, opens in any browser</div>
                                 <div class="export-badge recommended">Recommended</div>
                             </div>
-                            <div class="export-option" onclick="exportAsPrintPDF()">
-                                <div class="export-icon print-icon">
+                            <div class="export-option" style="opacity:0.5;cursor:not-allowed;" onclick="alert('PDF export coming soon!')">
+                                <div class="export-icon print-icon" style="background:linear-gradient(135deg, #6b7280 0%, #4b5563 100%);">
                                     <svg viewBox="0 0 24 24" fill="currentColor">
                                         <path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"/>
                                     </svg>
                                 </div>
                                 <div class="export-label">PDF Document</div>
-                                <div class="export-desc">Print-optimized clean format</div>
+                                <div class="export-desc">Coming Soon</div>
                             </div>
                         </div>
                     </div>
@@ -3079,6 +3079,10 @@
     <div class="container">
         <div class="header">
             <div class="title">Cisco Spaces Indoor Navigation Analytics Report</div>
+            <div class="logo" style="display:flex;align-items:center;gap:8px;">
+                <svg width="32" height="32" viewBox="0 0 100 100"><defs><linearGradient id="lg1" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#00c6ff"/><stop offset="100%" style="stop-color:#0072ff"/></linearGradient></defs><circle cx="35" cy="50" r="30" fill="url(#lg1)"/><circle cx="65" cy="50" r="30" fill="#22c55e" opacity="0.9"/></svg>
+                <span style="font-weight:600;font-size:14px;color:rgba(255,255,255,0.8);">Cisco Spaces</span>
+            </div>
         </div>
         
         <div class="meta-bar">
@@ -3247,6 +3251,10 @@
             <div class="footer-text">
                 Generated on ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} at ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}<br>
                 Cisco Spaces Indoor Navigation Analytics
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;">
+                <svg width="24" height="24" viewBox="0 0 100 100"><defs><linearGradient id="lg2" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#00c6ff"/><stop offset="100%" style="stop-color:#0072ff"/></linearGradient></defs><circle cx="35" cy="50" r="30" fill="url(#lg2)"/><circle cx="65" cy="50" r="30" fill="#22c55e" opacity="0.9"/></svg>
+                <span style="font-size:12px;color:rgba(255,255,255,0.5);">Cisco Spaces</span>
             </div>
         </div>
     </div>
