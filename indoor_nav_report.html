@@ -2251,12 +2251,25 @@
             renderTrendsChart(view);
         }
         
+        // Get day initial (M, T, W, T, F, S, S)
+        function getDayInitial(date) {
+            const days = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+            return days[date.getDay()];
+        }
+        
         function aggregateData(data, view) {
             if (view === 'daily') {
-                return data.map(d => ({
-                    label: new Date(d.day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-                    value: d.count || 0
-                }));
+                const totalDays = data.length;
+                return data.map(d => {
+                    const date = new Date(d.day);
+                    const dayInit = getDayInitial(date);
+                    const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                    // For 60+ days, use compact format; otherwise show full
+                    const label = totalDays > 45 
+                        ? `${date.getDate()}${dayInit}` 
+                        : `${dateStr} · ${dayInit}`;
+                    return { label, value: d.count || 0 };
+                });
             }
             
             if (view === 'weekly') {
