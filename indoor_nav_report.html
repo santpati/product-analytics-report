@@ -74,39 +74,157 @@
             color: #00c6ff;
         }
         
-        /* Controls */
-        .controls {
-            display: flex;
-            gap: 16px;
+        /* Controls Card */
+        .controls-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            padding: 24px 28px;
             margin-bottom: 32px;
-            flex-wrap: wrap;
+            backdrop-filter: blur(10px);
+        }
+        
+        .controls-row {
+            display: flex;
+            gap: 24px;
             align-items: flex-end;
         }
         
         .control-group {
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 8px;
         }
         
         .control-group label {
-            font-size: 12px;
+            font-size: 11px;
             color: rgba(255, 255, 255, 0.5);
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 1.2px;
+            font-weight: 500;
+        }
+        
+        .tenant-group {
+            flex: 1;
+            max-width: 320px;
+        }
+        
+        .tenant-input-row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        
+        .tenant-input-row input {
+            flex: 1;
+        }
+        
+        .duration-group {
+            min-width: 160px;
         }
         
         .control-group input,
         .control-group select {
-            padding: 12px 16px;
+            padding: 14px 18px;
             font-size: 14px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.15);
             border-radius: 12px;
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(0, 0, 0, 0.3);
             color: #fff;
             font-family: inherit;
-            min-width: 180px;
             transition: all 0.2s;
+        }
+        
+        .control-group select {
+            min-width: 160px;
+            cursor: pointer;
+        }
+        
+        /* EU Toggle Switch */
+        .eu-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            padding: 10px 14px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            transition: all 0.2s;
+        }
+        
+        .eu-toggle:hover {
+            border-color: rgba(255, 255, 255, 0.25);
+        }
+        
+        .eu-toggle input {
+            display: none;
+        }
+        
+        .eu-toggle-slider {
+            width: 36px;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+            position: relative;
+            transition: all 0.3s;
+        }
+        
+        .eu-toggle-slider::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: all 0.3s;
+        }
+        
+        .eu-toggle input:checked + .eu-toggle-slider {
+            background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%);
+        }
+        
+        .eu-toggle input:checked + .eu-toggle-slider::after {
+            left: 18px;
+            background: #fff;
+        }
+        
+        .eu-toggle-label {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.6);
+            font-weight: 500;
+        }
+        
+        .eu-toggle input:checked ~ .eu-toggle-label {
+            color: #00c6ff;
+        }
+        
+        /* Load Button Enhancement */
+        .controls-row .load-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 28px;
+            white-space: nowrap;
+        }
+        
+        .controls-row .load-btn svg {
+            flex-shrink: 0;
+        }
+        
+        @media (max-width: 768px) {
+            .controls-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .tenant-group {
+                max-width: 100%;
+            }
+            .controls-row .load-btn {
+                justify-content: center;
+            }
         }
         
         #siteSelect {
@@ -977,54 +1095,6 @@
             box-shadow: 0 0 0 3px rgba(0, 198, 255, 0.2);
         }
         
-        /* EU Region Checkbox */
-        .eu-checkbox {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            margin-top: 8px;
-            cursor: pointer;
-            font-size: 12px;
-        }
-        
-        .eu-checkbox input {
-            display: none;
-        }
-        
-        .eu-checkmark {
-            width: 16px;
-            height: 16px;
-            border: 1.5px solid rgba(255, 255, 255, 0.3);
-            border-radius: 4px;
-            position: relative;
-            transition: all 0.2s;
-            min-width: 16px;
-        }
-        
-        .eu-checkbox input:checked + .eu-checkmark {
-            background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%);
-            border-color: transparent;
-        }
-        
-        .eu-checkbox input:checked + .eu-checkmark::after {
-            content: '';
-            position: absolute;
-            left: 4px;
-            top: 1px;
-            width: 4px;
-            height: 8px;
-            border: solid white;
-            border-width: 0 2px 2px 0;
-            transform: rotate(45deg);
-        }
-        
-        .eu-label {
-            color: rgba(255, 255, 255, 0.6);
-        }
-        
-        .eu-checkbox:hover .eu-label {
-            color: rgba(255, 255, 255, 0.8);
-        }
         
         .control-group select option {
             background: #1a1a2e;
@@ -1407,29 +1477,37 @@
         </div>
         
         <!-- Step 1: Tenant & Duration -->
-        <div class="controls" id="step1Controls">
-            <div class="control-group">
-                <label>Tenant ID</label>
-                <input type="text" id="tenantInput" placeholder="e.g., 16007">
-                <label class="eu-checkbox">
-                    <input type="checkbox" id="euRegion">
-                    <span class="eu-checkmark"></span>
-                    <span class="eu-label">.eu region</span>
-                </label>
+        <div class="controls-card" id="step1Controls">
+            <div class="controls-row">
+                <div class="control-group tenant-group">
+                    <label>Tenant ID</label>
+                    <div class="tenant-input-row">
+                        <input type="text" id="tenantInput" placeholder="Enter tenant ID">
+                        <label class="eu-toggle">
+                            <input type="checkbox" id="euRegion">
+                            <span class="eu-toggle-slider"></span>
+                            <span class="eu-toggle-label">.eu</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="control-group duration-group">
+                    <label>Duration</label>
+                    <select id="durationSelect">
+                        <option value="7">Last 7 Days</option>
+                        <option value="14">Last 14 Days</option>
+                        <option value="30" selected>Last 30 Days</option>
+                        <option value="60">Last 60 Days</option>
+                        <option value="90">Last 90 Days</option>
+                    </select>
+                </div>
+                <button class="load-btn" id="getDataBtn" onclick="getData()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                        <path d="M21 12a9 9 0 11-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/>
+                        <path d="M21 3v5h-5"/>
+                    </svg>
+                    Get Data
+                </button>
             </div>
-            <div class="control-group">
-                <label>Duration</label>
-                <select id="durationSelect">
-                    <option value="7">Last 7 Days</option>
-                    <option value="14">Last 14 Days</option>
-                    <option value="30" selected>Last 30 Days</option>
-                    <option value="60">Last 60 Days</option>
-                    <option value="90">Last 90 Days</option>
-                </select>
-            </div>
-            <button class="load-btn" id="getDataBtn" onclick="getData()">
-                Get Data
-            </button>
         </div>
         
         <!-- Step 2: Sites Selection (hidden initially) -->
