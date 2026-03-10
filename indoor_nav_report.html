@@ -977,6 +977,55 @@
             box-shadow: 0 0 0 3px rgba(0, 198, 255, 0.2);
         }
         
+        /* EU Region Checkbox */
+        .eu-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 8px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .eu-checkbox input {
+            display: none;
+        }
+        
+        .eu-checkmark {
+            width: 16px;
+            height: 16px;
+            border: 1.5px solid rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+            position: relative;
+            transition: all 0.2s;
+            min-width: 16px;
+        }
+        
+        .eu-checkbox input:checked + .eu-checkmark {
+            background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%);
+            border-color: transparent;
+        }
+        
+        .eu-checkbox input:checked + .eu-checkmark::after {
+            content: '';
+            position: absolute;
+            left: 4px;
+            top: 1px;
+            width: 4px;
+            height: 8px;
+            border: solid white;
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg);
+        }
+        
+        .eu-label {
+            color: rgba(255, 255, 255, 0.6);
+        }
+        
+        .eu-checkbox:hover .eu-label {
+            color: rgba(255, 255, 255, 0.8);
+        }
+        
         .control-group select option {
             background: #1a1a2e;
             color: #fff;
@@ -1362,6 +1411,11 @@
             <div class="control-group">
                 <label>Tenant ID</label>
                 <input type="text" id="tenantInput" placeholder="e.g., 16007">
+                <label class="eu-checkbox">
+                    <input type="checkbox" id="euRegion">
+                    <span class="eu-checkmark"></span>
+                    <span class="eu-label">.eu region</span>
+                </label>
             </div>
             <div class="control-group">
                 <label>Duration</label>
@@ -1763,7 +1817,12 @@
         google.charts.setOnLoadCallback(() => { googleChartsLoaded = true; });
         
         const BASE_URL = '/api/pendo';
-        const INDOOR_NAV_SUFFIX = '_wf.ciscospaces.io';
+        
+        // Dynamic suffix based on EU region checkbox
+        function getAccountSuffix() {
+            const isEU = document.getElementById('euRegion')?.checked || false;
+            return isEU ? '_wf.ciscospaces.eu' : '_wf.ciscospaces.io';
+        }
         const QR_SCAN_TRACK_ID = 'WTbkpuIbpDRGeRZXHVyg6swMZf8';
         const POI_TRACK_ID = 'RyI0lQYmAm7X8u-ju0JPDEuT0WI';
         const QUICK_ACCESS_TRACK_ID = 'UiyouU6Qy0KZNjWKK7-ZdSGWXWg';
@@ -1948,7 +2007,7 @@
             
             showLoading(true, 'Fetching available sites...');
             
-            const accountId = `${tenantId}${INDOOR_NAV_SUFFIX}`;
+            const accountId = `${tenantId}${getAccountSuffix()}`;
             const { startMs, endMs, startDate, endDate } = getDateRange(days);
             
             document.getElementById('accountDisplay').textContent = accountId;
@@ -2001,7 +2060,7 @@
             
             showLoading(true, 'Loading report data...');
             
-            const accountId = `${tenantId}${INDOOR_NAV_SUFFIX}`;
+            const accountId = `${tenantId}${getAccountSuffix()}`;
             const { startMs, endMs, startDate, endDate } = getDateRange(days);
             
             document.getElementById('accountDisplay').textContent = accountId;
