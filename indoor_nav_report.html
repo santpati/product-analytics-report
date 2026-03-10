@@ -762,157 +762,13 @@
             box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
         }
         
-        /* PDF Report Styles */
-        .pdf-report {
-            background: #ffffff;
-            color: #1a1a2e;
-            padding: 40px;
-            width: 794px;
-            min-height: 1123px;
-            font-family: 'Inter', -apple-system, sans-serif;
+        /* PDF Generation Container - Hidden during generation */
+        #pdf-generation-container {
             position: absolute;
-            left: 0;
+            left: -9999px;
             top: 0;
             z-index: -1;
-            opacity: 0;
             pointer-events: none;
-        }
-        
-        .pdf-report.generating {
-            opacity: 1;
-            z-index: 9999;
-            position: fixed;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            max-height: 90vh;
-            overflow: auto;
-            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5);
-            border-radius: 8px;
-        }
-        
-        .pdf-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-            padding-bottom: 20px;
-            border-bottom: 2px solid #e5e7eb;
-        }
-        
-        .pdf-title {
-            font-size: 24px;
-            font-weight: 700;
-            color: #1a1a2e;
-        }
-        
-        .pdf-logo {
-            height: 40px;
-        }
-        
-        .pdf-meta {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
-            margin-bottom: 30px;
-            padding: 20px;
-            background: #f8fafc;
-            border-radius: 12px;
-        }
-        
-        .pdf-meta-item {
-            text-align: center;
-        }
-        
-        .pdf-meta-label {
-            font-size: 11px;
-            color: #6b7280;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 4px;
-        }
-        
-        .pdf-meta-value {
-            font-size: 14px;
-            font-weight: 600;
-            color: #1a1a2e;
-        }
-        
-        .pdf-section {
-            margin-bottom: 30px;
-        }
-        
-        .pdf-section-title {
-            font-size: 16px;
-            font-weight: 600;
-            color: #1a1a2e;
-            margin-bottom: 15px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid #e5e7eb;
-        }
-        
-        .pdf-metrics-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 15px;
-        }
-        
-        .pdf-metric-card {
-            padding: 15px;
-            background: #f8fafc;
-            border-radius: 10px;
-            border-left: 4px solid;
-        }
-        
-        .pdf-metric-card.blue { border-left-color: #3b82f6; }
-        .pdf-metric-card.green { border-left-color: #22c55e; }
-        .pdf-metric-card.purple { border-left-color: #a855f7; }
-        .pdf-metric-card.orange { border-left-color: #f97316; }
-        .pdf-metric-card.teal { border-left-color: #14b8a6; }
-        .pdf-metric-card.red { border-left-color: #ef4444; }
-        
-        .pdf-metric-label {
-            font-size: 11px;
-            color: #6b7280;
-            margin-bottom: 4px;
-        }
-        
-        .pdf-metric-value {
-            font-size: 24px;
-            font-weight: 700;
-            color: #1a1a2e;
-        }
-        
-        .pdf-chart-container {
-            background: #f8fafc;
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 15px;
-        }
-        
-        .pdf-chart-title {
-            font-size: 13px;
-            font-weight: 600;
-            color: #374151;
-            margin-bottom: 10px;
-        }
-        
-        .pdf-footer {
-            margin-top: 40px;
-            padding-top: 20px;
-            border-top: 1px solid #e5e7eb;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .pdf-footer-text {
-            font-size: 11px;
-            color: #9ca3af;
-        }
-        
-        .pdf-footer-logo {
-            height: 30px;
         }
         
         .control-group input:focus,
@@ -1411,6 +1267,9 @@
         
         <div class="divider"></div>
         
+        <!-- Report Content Wrapper (for PDF capture) -->
+        <div id="reportContent">
+        
         <!-- Section Title -->
         <div class="section-title">Key Metrics • QR Code Scanning</div>
         
@@ -1621,6 +1480,8 @@
                 </div>
             </div>
         </div>
+        
+        </div><!-- End reportContent -->
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/wordcloud@1.2.2/src/wordcloud2.min.js"></script>
@@ -2671,7 +2532,7 @@
             const trendsView = document.querySelector('input[name="pdfTrends"]:checked').value;
             
             closePdfModal();
-            showLoading(true, 'Generating PDF report...');
+            showLoading(true, 'Generating professional PDF report...');
             
             // Update trends chart to selected view
             if (trendsView !== currentTrendsView) {
@@ -2683,7 +2544,26 @@
             const { startDate, endDate } = getDateRange(parseInt(days));
             const dateRange = formatDateRange(startDate, endDate);
             
-            // Get current metric values
+            // Capture all chart canvases as images
+            const trendsChartImg = document.getElementById('qrTrendsChart')?.toDataURL('image/png', 1.0) || '';
+            const platformChartImg = document.getElementById('platformChart')?.toDataURL('image/png', 1.0) || '';
+            const poiChartImg = document.getElementById('poiChart')?.toDataURL('image/png', 1.0) || '';
+            const quickAccessChartImg = document.getElementById('quickAccessChart')?.toDataURL('image/png', 1.0) || '';
+            const wordcloudImg = document.getElementById('wordcloudCanvas')?.toDataURL('image/png', 1.0) || '';
+            
+            // Capture Sankey diagram as image if it exists
+            let sankeyImg = '';
+            const sankeyContainer = document.getElementById('sankeyChart');
+            if (sankeyContainer && includeAdvanced) {
+                const sankeySvg = sankeyContainer.querySelector('svg');
+                if (sankeySvg) {
+                    const svgData = new XMLSerializer().serializeToString(sankeySvg);
+                    const svgBlob = new Blob([svgData], {type: 'image/svg+xml;charset=utf-8'});
+                    sankeyImg = URL.createObjectURL(svgBlob);
+                }
+            }
+            
+            // Get metric values
             const totalQRScans = document.getElementById('totalQRScans').textContent;
             const uniqueVisitors = document.getElementById('uniqueVisitors').textContent;
             const iosCount = document.getElementById('iosCount').textContent;
@@ -2695,147 +2575,439 @@
             const totalPOI = document.getElementById('totalPOI').textContent;
             const totalQuickAccess = document.getElementById('totalQuickAccess').textContent;
             const totalSearches = document.getElementById('totalSearches').textContent;
+            const navStarted = document.getElementById('navStarted')?.textContent || '--';
+            const navCompleted = document.getElementById('navCompleted')?.textContent || '--';
+            const navCanceled = document.getElementById('navCanceled')?.textContent || '--';
+            const navCompletedPercent = document.getElementById('navCompletedPercent')?.textContent || '';
+            const navCanceledPercent = document.getElementById('navCanceledPercent')?.textContent || '';
             
-            // Create PDF content with inline styles for html2pdf
-            const pdfHTML = `
-                <div style="background:#ffffff;color:#1a1a2e;padding:40px;width:714px;font-family:Arial,sans-serif;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:30px;padding-bottom:20px;border-bottom:3px solid #0d9488;">
-                        <div style="font-size:22px;font-weight:700;color:#1a1a2e;">Cisco Spaces Indoor Navigation Analytics Report</div>
-                        <img src="cisco-spaces-logo.png" style="height:40px;" crossorigin="anonymous">
+            // Build professional PDF with dark theme
+            const pdfContainer = document.createElement('div');
+            pdfContainer.id = 'pdf-generation-container';
+            pdfContainer.innerHTML = `
+                <style>
+                    #pdf-content * { box-sizing: border-box; margin: 0; padding: 0; }
+                    #pdf-content { 
+                        background: linear-gradient(180deg, #0f0f1a 0%, #1a1a2e 100%);
+                        color: #ffffff;
+                        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+                        padding: 40px;
+                        width: 794px;
+                        min-height: 1123px;
+                    }
+                    .pdf-header-bar {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        padding-bottom: 24px;
+                        border-bottom: 2px solid rgba(0, 198, 255, 0.3);
+                        margin-bottom: 24px;
+                    }
+                    .pdf-main-title {
+                        font-size: 24px;
+                        font-weight: 700;
+                        background: linear-gradient(90deg, #00c6ff 0%, #0072ff 100%);
+                        -webkit-background-clip: text;
+                        -webkit-text-fill-color: transparent;
+                        background-clip: text;
+                    }
+                    .pdf-logo { height: 36px; }
+                    .pdf-meta-bar {
+                        display: flex;
+                        gap: 32px;
+                        padding: 20px 24px;
+                        background: rgba(255, 255, 255, 0.05);
+                        border-radius: 16px;
+                        margin-bottom: 32px;
+                        border: 1px solid rgba(255, 255, 255, 0.1);
+                    }
+                    .pdf-meta-item { flex: 1; text-align: center; }
+                    .pdf-meta-label { 
+                        font-size: 10px; 
+                        color: rgba(255, 255, 255, 0.5); 
+                        text-transform: uppercase; 
+                        letter-spacing: 1.5px;
+                        margin-bottom: 6px;
+                    }
+                    .pdf-meta-value { 
+                        font-size: 15px; 
+                        font-weight: 600; 
+                        color: #ffffff;
+                    }
+                    .pdf-section { margin-bottom: 28px; }
+                    .pdf-section-title {
+                        font-size: 14px;
+                        font-weight: 600;
+                        color: rgba(255, 255, 255, 0.7);
+                        margin-bottom: 16px;
+                        padding-bottom: 8px;
+                        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                    }
+                    .pdf-section-title::before {
+                        content: '';
+                        width: 4px;
+                        height: 16px;
+                        border-radius: 2px;
+                    }
+                    .pdf-section-title.blue::before { background: linear-gradient(180deg, #00c6ff, #0072ff); }
+                    .pdf-section-title.green::before { background: linear-gradient(180deg, #22c55e, #16a34a); }
+                    .pdf-section-title.purple::before { background: linear-gradient(180deg, #a855f7, #6366f1); }
+                    .pdf-section-title.orange::before { background: linear-gradient(180deg, #f97316, #ea580c); }
+                    .pdf-section-title.teal::before { background: linear-gradient(180deg, #14b8a6, #06b6d4); }
+                    .pdf-section-title.pink::before { background: linear-gradient(180deg, #ec4899, #8b5cf6); }
+                    .pdf-metrics-row {
+                        display: flex;
+                        gap: 16px;
+                        margin-bottom: 16px;
+                    }
+                    .pdf-metric-card {
+                        flex: 1;
+                        padding: 20px;
+                        border-radius: 16px;
+                        text-align: center;
+                    }
+                    .pdf-metric-card.blue {
+                        background: linear-gradient(135deg, rgba(0, 198, 255, 0.15) 0%, rgba(0, 114, 255, 0.15) 100%);
+                        border: 1px solid rgba(0, 198, 255, 0.3);
+                    }
+                    .pdf-metric-card.green {
+                        background: linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(22, 163, 74, 0.15) 100%);
+                        border: 1px solid rgba(34, 197, 94, 0.3);
+                    }
+                    .pdf-metric-card.purple {
+                        background: linear-gradient(135deg, rgba(168, 85, 247, 0.15) 0%, rgba(99, 102, 241, 0.15) 100%);
+                        border: 1px solid rgba(168, 85, 247, 0.3);
+                    }
+                    .pdf-metric-card.orange {
+                        background: linear-gradient(135deg, rgba(249, 115, 22, 0.15) 0%, rgba(234, 88, 12, 0.15) 100%);
+                        border: 1px solid rgba(249, 115, 22, 0.3);
+                    }
+                    .pdf-metric-card.teal {
+                        background: linear-gradient(135deg, rgba(20, 184, 166, 0.15) 0%, rgba(6, 182, 212, 0.15) 100%);
+                        border: 1px solid rgba(20, 184, 166, 0.3);
+                    }
+                    .pdf-metric-label {
+                        font-size: 11px;
+                        color: rgba(255, 255, 255, 0.6);
+                        margin-bottom: 8px;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                    }
+                    .pdf-metric-value {
+                        font-size: 36px;
+                        font-weight: 700;
+                    }
+                    .pdf-metric-value.blue { color: #00c6ff; }
+                    .pdf-metric-value.green { color: #22c55e; }
+                    .pdf-metric-value.purple { color: #a855f7; }
+                    .pdf-metric-value.orange { color: #f97316; }
+                    .pdf-metric-value.teal { color: #14b8a6; }
+                    .pdf-metric-subtitle {
+                        font-size: 10px;
+                        color: rgba(255, 255, 255, 0.4);
+                        margin-top: 4px;
+                    }
+                    .pdf-chart-container {
+                        background: rgba(255, 255, 255, 0.03);
+                        border-radius: 16px;
+                        padding: 20px;
+                        border: 1px solid rgba(255, 255, 255, 0.08);
+                    }
+                    .pdf-chart-title {
+                        font-size: 13px;
+                        font-weight: 600;
+                        color: rgba(255, 255, 255, 0.8);
+                        margin-bottom: 16px;
+                    }
+                    .pdf-chart-img {
+                        width: 100%;
+                        height: auto;
+                        border-radius: 8px;
+                    }
+                    .pdf-platform-grid {
+                        display: flex;
+                        gap: 16px;
+                    }
+                    .pdf-platform-card {
+                        flex: 1;
+                        padding: 16px;
+                        border-radius: 12px;
+                        background: rgba(255, 255, 255, 0.05);
+                        text-align: center;
+                    }
+                    .pdf-platform-label { font-size: 12px; color: rgba(255, 255, 255, 0.6); margin-bottom: 6px; }
+                    .pdf-platform-value { font-size: 28px; font-weight: 700; }
+                    .pdf-platform-percent { font-size: 11px; color: rgba(255, 255, 255, 0.4); margin-top: 2px; }
+                    .pdf-two-col { display: flex; gap: 20px; }
+                    .pdf-col-left { width: 35%; }
+                    .pdf-col-right { width: 65%; }
+                    .pdf-footer {
+                        margin-top: 40px;
+                        padding-top: 20px;
+                        border-top: 1px solid rgba(255, 255, 255, 0.1);
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                    }
+                    .pdf-footer-text {
+                        font-size: 10px;
+                        color: rgba(255, 255, 255, 0.4);
+                    }
+                    .pdf-footer-logo { height: 24px; opacity: 0.7; }
+                    .pdf-funnel-grid {
+                        display: flex;
+                        gap: 12px;
+                    }
+                    .pdf-funnel-card {
+                        flex: 1;
+                        padding: 16px;
+                        border-radius: 12px;
+                        text-align: center;
+                    }
+                    .pdf-funnel-card.started {
+                        background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(37, 99, 235, 0.2));
+                        border: 1px solid rgba(59, 130, 246, 0.3);
+                    }
+                    .pdf-funnel-card.completed {
+                        background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(22, 163, 74, 0.2));
+                        border: 1px solid rgba(34, 197, 94, 0.3);
+                    }
+                    .pdf-funnel-card.canceled {
+                        background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(220, 38, 38, 0.2));
+                        border: 1px solid rgba(239, 68, 68, 0.3);
+                    }
+                    .pdf-funnel-label { font-size: 10px; color: rgba(255, 255, 255, 0.6); margin-bottom: 6px; }
+                    .pdf-funnel-value { font-size: 28px; font-weight: 700; }
+                    .pdf-funnel-value.blue { color: #3b82f6; }
+                    .pdf-funnel-value.green { color: #22c55e; }
+                    .pdf-funnel-value.red { color: #ef4444; }
+                    .pdf-funnel-percent { font-size: 10px; color: rgba(255, 255, 255, 0.5); margin-top: 4px; }
+                    .pdf-note {
+                        margin-top: 12px;
+                        padding: 12px;
+                        background: rgba(236, 72, 153, 0.1);
+                        border-radius: 8px;
+                        border-left: 3px solid #ec4899;
+                        font-size: 11px;
+                        color: rgba(255, 255, 255, 0.7);
+                    }
+                    .page-break { page-break-before: always; padding-top: 40px; }
+                </style>
+                <div id="pdf-content">
+                    <!-- Header -->
+                    <div class="pdf-header-bar">
+                        <div class="pdf-main-title">Cisco Spaces Indoor Navigation Analytics Report</div>
+                        <img src="cisco-spaces-logo.png" class="pdf-logo" crossorigin="anonymous">
                     </div>
                     
-                    <div style="display:flex;gap:20px;margin-bottom:30px;padding:20px;background:#f8fafc;border-radius:12px;">
-                        <div style="flex:1;text-align:center;">
-                            <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Customer</div>
-                            <div style="font-size:14px;font-weight:600;color:#1a1a2e;">${customerName}</div>
+                    <!-- Meta Info -->
+                    <div class="pdf-meta-bar">
+                        <div class="pdf-meta-item">
+                            <div class="pdf-meta-label">Customer</div>
+                            <div class="pdf-meta-value">${customerName}</div>
                         </div>
-                        <div style="flex:1;text-align:center;border-left:1px solid #e5e7eb;border-right:1px solid #e5e7eb;">
-                            <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Duration</div>
-                            <div style="font-size:14px;font-weight:600;color:#1a1a2e;">${dateRange}</div>
-                            <div style="font-size:11px;color:#6b7280;">Last ${days} Days</div>
+                        <div class="pdf-meta-item">
+                            <div class="pdf-meta-label">Duration</div>
+                            <div class="pdf-meta-value">${dateRange}</div>
+                            <div style="font-size:11px;color:rgba(255,255,255,0.4);margin-top:2px;">Last ${days} Days</div>
                         </div>
-                        <div style="flex:1;text-align:center;">
-                            <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Sites</div>
-                            <div style="font-size:14px;font-weight:600;color:#1a1a2e;">${sitesText.length > 50 ? sitesText.substring(0, 50) + '...' : sitesText}</div>
+                        <div class="pdf-meta-item">
+                            <div class="pdf-meta-label">Sites</div>
+                            <div class="pdf-meta-value" style="font-size:${sitesText.length > 40 ? '12px' : '15px'};">${sitesText.length > 60 ? sitesText.substring(0, 60) + '...' : sitesText}</div>
                         </div>
                     </div>
                     
-                    <div style="margin-bottom:25px;">
-                        <div style="font-size:14px;font-weight:600;color:#1a1a2e;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid #3b82f6;">QR Code Scanning Metrics</div>
-                        <div style="display:flex;gap:15px;">
-                            <div style="flex:1;padding:20px;background:#eff6ff;border-radius:10px;border-left:4px solid #3b82f6;">
-                                <div style="font-size:11px;color:#6b7280;margin-bottom:4px;">Total QR Scans</div>
-                                <div style="font-size:28px;font-weight:700;color:#3b82f6;">${totalQRScans}</div>
+                    <!-- QR Code Scanning Section -->
+                    <div class="pdf-section">
+                        <div class="pdf-section-title blue">Key Metrics • QR Code Scanning</div>
+                        <div class="pdf-metrics-row">
+                            <div class="pdf-metric-card blue">
+                                <div class="pdf-metric-label">Total QR Scans</div>
+                                <div class="pdf-metric-value blue">${totalQRScans}</div>
+                                <div class="pdf-metric-subtitle">QR codes scanned for indoor navigation</div>
                             </div>
-                            <div style="flex:1;padding:20px;background:#f0fdf4;border-radius:10px;border-left:4px solid #22c55e;">
-                                <div style="font-size:11px;color:#6b7280;margin-bottom:4px;">Unique Visitors</div>
-                                <div style="font-size:28px;font-weight:700;color:#22c55e;">${uniqueVisitors}</div>
+                            <div class="pdf-metric-card green">
+                                <div class="pdf-metric-label">Unique Visitors</div>
+                                <div class="pdf-metric-value green">${uniqueVisitors}</div>
+                                <div class="pdf-metric-subtitle">Distinct users who scanned QR codes</div>
                             </div>
                         </div>
                     </div>
                     
-                    <div style="margin-bottom:25px;">
-                        <div style="font-size:14px;font-weight:600;color:#1a1a2e;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid #8b5cf6;">Platform Breakdown</div>
-                        <div style="display:flex;gap:15px;">
-                            <div style="flex:1;padding:15px;background:#f8fafc;border-radius:10px;text-align:center;">
-                                <div style="font-size:11px;color:#6b7280;margin-bottom:4px;">iOS</div>
-                                <div style="font-size:24px;font-weight:700;color:#007AFF;">${iosCount}</div>
-                                <div style="font-size:11px;color:#6b7280;">${iosPercent}</div>
+                    <!-- Trends Chart -->
+                    <div class="pdf-section">
+                        <div class="pdf-chart-container">
+                            <div class="pdf-chart-title">QR Scan Trends (${trendsView.charAt(0).toUpperCase() + trendsView.slice(1)})</div>
+                            <img src="${trendsChartImg}" class="pdf-chart-img" style="height: 180px; object-fit: contain;">
+                        </div>
+                    </div>
+                    
+                    <!-- Platform Breakdown -->
+                    <div class="pdf-section">
+                        <div class="pdf-section-title green">Platform Breakdown</div>
+                        <div class="pdf-two-col">
+                            <div class="pdf-col-left">
+                                <div class="pdf-chart-container" style="height: 100%;">
+                                    <img src="${platformChartImg}" class="pdf-chart-img" style="height: 160px; object-fit: contain;">
+                                </div>
                             </div>
-                            <div style="flex:1;padding:15px;background:#f8fafc;border-radius:10px;text-align:center;">
-                                <div style="font-size:11px;color:#6b7280;margin-bottom:4px;">Android</div>
-                                <div style="font-size:24px;font-weight:700;color:#34C759;">${androidCount}</div>
-                                <div style="font-size:11px;color:#6b7280;">${androidPercent}</div>
-                            </div>
-                            <div style="flex:1;padding:15px;background:#f8fafc;border-radius:10px;text-align:center;">
-                                <div style="font-size:11px;color:#6b7280;margin-bottom:4px;">Web</div>
-                                <div style="font-size:24px;font-weight:700;color:#FF9500;">${webCount}</div>
-                                <div style="font-size:11px;color:#6b7280;">${webPercent}</div>
+                            <div class="pdf-col-right">
+                                <div class="pdf-platform-grid">
+                                    <div class="pdf-platform-card">
+                                        <div class="pdf-platform-label">iOS</div>
+                                        <div class="pdf-platform-value" style="color: #007AFF;">${iosCount}</div>
+                                        <div class="pdf-platform-percent">${iosPercent}</div>
+                                    </div>
+                                    <div class="pdf-platform-card">
+                                        <div class="pdf-platform-label">Android</div>
+                                        <div class="pdf-platform-value" style="color: #34C759;">${androidCount}</div>
+                                        <div class="pdf-platform-percent">${androidPercent}</div>
+                                    </div>
+                                    <div class="pdf-platform-card">
+                                        <div class="pdf-platform-label">Web</div>
+                                        <div class="pdf-platform-value" style="color: #FF9500;">${webCount}</div>
+                                        <div class="pdf-platform-percent">${webPercent}</div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                     
-                    <div style="margin-bottom:25px;">
-                        <div style="font-size:14px;font-weight:600;color:#1a1a2e;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid #a855f7;">Point of Interest (POI)</div>
-                        <div style="padding:20px;background:#faf5ff;border-radius:10px;border-left:4px solid #a855f7;">
-                            <div style="font-size:11px;color:#6b7280;margin-bottom:4px;">Total POI Selected</div>
-                            <div style="font-size:28px;font-weight:700;color:#a855f7;">${totalPOI}</div>
-                            <div style="font-size:11px;color:#6b7280;">Point of Interest selections for navigation</div>
+                    <!-- Page 2 -->
+                    <div class="page-break">
+                        <!-- POI Section -->
+                        <div class="pdf-section">
+                            <div class="pdf-section-title purple">Key Metrics • Point of Interest (POI)</div>
+                            <div class="pdf-two-col">
+                                <div class="pdf-col-left">
+                                    <div class="pdf-metric-card purple" style="height: 100%; display: flex; flex-direction: column; justify-content: center;">
+                                        <div class="pdf-metric-label">Total POI Selected</div>
+                                        <div class="pdf-metric-value purple">${totalPOI}</div>
+                                        <div class="pdf-metric-subtitle">Point of Interest selections</div>
+                                    </div>
+                                </div>
+                                <div class="pdf-col-right">
+                                    <div class="pdf-chart-container">
+                                        <div class="pdf-chart-title">Top 10 POIs Selected</div>
+                                        <img src="${poiChartImg}" class="pdf-chart-img" style="height: 200px; object-fit: contain;">
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                    
-                    <div style="margin-bottom:25px;">
-                        <div style="font-size:14px;font-weight:600;color:#1a1a2e;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid #f97316;">Quick Access</div>
-                        <div style="padding:20px;background:#fff7ed;border-radius:10px;border-left:4px solid #f97316;">
-                            <div style="font-size:11px;color:#6b7280;margin-bottom:4px;">Total Quick-Access Selected</div>
-                            <div style="font-size:28px;font-weight:700;color:#f97316;">${totalQuickAccess}</div>
-                            <div style="font-size:11px;color:#6b7280;">Quick access options selected for navigation</div>
+                        
+                        <!-- Quick Access Section -->
+                        <div class="pdf-section">
+                            <div class="pdf-section-title orange">Key Metrics • Quick Access</div>
+                            <div class="pdf-two-col">
+                                <div class="pdf-col-left">
+                                    <div class="pdf-metric-card orange" style="height: 100%; display: flex; flex-direction: column; justify-content: center;">
+                                        <div class="pdf-metric-label">Total Quick-Access</div>
+                                        <div class="pdf-metric-value orange">${totalQuickAccess}</div>
+                                        <div class="pdf-metric-subtitle">Quick access selections</div>
+                                    </div>
+                                </div>
+                                <div class="pdf-col-right">
+                                    <div class="pdf-chart-container">
+                                        <div class="pdf-chart-title">Top 10 Quick-Access Categories</div>
+                                        <img src="${quickAccessChartImg}" class="pdf-chart-img" style="height: 200px; object-fit: contain;">
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                    
-                    <div style="margin-bottom:25px;">
-                        <div style="font-size:14px;font-weight:600;color:#1a1a2e;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid #14b8a6;">Search</div>
-                        <div style="padding:20px;background:#f0fdfa;border-radius:10px;border-left:4px solid #14b8a6;">
-                            <div style="font-size:11px;color:#6b7280;margin-bottom:4px;">Total Searches</div>
-                            <div style="font-size:28px;font-weight:700;color:#14b8a6;">${totalSearches}</div>
-                            <div style="font-size:11px;color:#6b7280;">Manual searches by users for navigation</div>
+                        
+                        <!-- Search Section -->
+                        <div class="pdf-section">
+                            <div class="pdf-section-title teal">Key Metrics • Search</div>
+                            <div class="pdf-two-col">
+                                <div class="pdf-col-left">
+                                    <div class="pdf-metric-card teal" style="height: 100%; display: flex; flex-direction: column; justify-content: center;">
+                                        <div class="pdf-metric-label">Total Searches</div>
+                                        <div class="pdf-metric-value teal">${totalSearches}</div>
+                                        <div class="pdf-metric-subtitle">Manual user searches</div>
+                                    </div>
+                                </div>
+                                <div class="pdf-col-right">
+                                    <div class="pdf-chart-container">
+                                        <div class="pdf-chart-title">Search Terms Word Cloud</div>
+                                        <img src="${wordcloudImg}" class="pdf-chart-img" style="height: 200px; object-fit: contain; background: rgba(0,0,0,0.3); border-radius: 8px;">
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     
                     ${includeAdvanced ? `
-                    <div style="margin-bottom:25px;">
-                        <div style="font-size:14px;font-weight:600;color:#1a1a2e;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid #ec4899;">Navigation Funnel (Advanced Analytics)</div>
-                        <div style="display:flex;gap:15px;">
-                            <div style="flex:1;padding:20px;background:#eff6ff;border-radius:10px;border-left:4px solid #3b82f6;text-align:center;">
-                                <div style="font-size:11px;color:#6b7280;margin-bottom:4px;">Navigation Started</div>
-                                <div style="font-size:28px;font-weight:700;color:#3b82f6;">${document.getElementById('navStarted')?.textContent || '--'}</div>
-                            </div>
-                            <div style="flex:1;padding:20px;background:#f0fdf4;border-radius:10px;border-left:4px solid #22c55e;text-align:center;">
-                                <div style="font-size:11px;color:#6b7280;margin-bottom:4px;">Navigation Completed</div>
-                                <div style="font-size:28px;font-weight:700;color:#22c55e;">${document.getElementById('navCompleted')?.textContent || '--'}</div>
-                                <div style="font-size:11px;color:#22c55e;margin-top:4px;">${document.getElementById('navCompletedPercent')?.textContent || ''}</div>
-                            </div>
-                            <div style="flex:1;padding:20px;background:#fef2f2;border-radius:10px;border-left:4px solid #ef4444;text-align:center;">
-                                <div style="font-size:11px;color:#6b7280;margin-bottom:4px;">Navigation Canceled</div>
-                                <div style="font-size:28px;font-weight:700;color:#ef4444;">${document.getElementById('navCanceled')?.textContent || '--'}</div>
-                                <div style="font-size:11px;color:#ef4444;margin-top:4px;">${document.getElementById('navCanceledPercent')?.textContent || ''}</div>
+                    <!-- Page 3: Advanced Analytics -->
+                    <div class="page-break">
+                        <div class="pdf-section">
+                            <div class="pdf-section-title pink">Advanced Analytics • Navigation Flow</div>
+                            <div class="pdf-chart-container">
+                                <div class="pdf-chart-title">Indoor Navigation Journey</div>
+                                <div class="pdf-funnel-grid" style="margin-top: 20px;">
+                                    <div class="pdf-funnel-card started">
+                                        <div class="pdf-funnel-label">Navigation Started</div>
+                                        <div class="pdf-funnel-value blue">${navStarted}</div>
+                                        <div class="pdf-funnel-percent">Total journeys initiated</div>
+                                    </div>
+                                    <div class="pdf-funnel-card completed">
+                                        <div class="pdf-funnel-label">Navigation Completed</div>
+                                        <div class="pdf-funnel-value green">${navCompleted}</div>
+                                        <div class="pdf-funnel-percent">${navCompletedPercent}</div>
+                                    </div>
+                                    <div class="pdf-funnel-card canceled">
+                                        <div class="pdf-funnel-label">Navigation Canceled</div>
+                                        <div class="pdf-funnel-value red">${navCanceled}</div>
+                                        <div class="pdf-funnel-percent">${navCanceledPercent}</div>
+                                    </div>
+                                </div>
+                                <div class="pdf-note">
+                                    <strong>Note:</strong> Many users cancel navigation once the destination is closer.
+                                </div>
                             </div>
                         </div>
                     </div>
                     ` : ''}
                     
-                    <div style="margin-top:40px;padding-top:20px;border-top:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;">
-                        <div style="font-size:11px;color:#9ca3af;">Generated on ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} at ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</div>
-                        <img src="cisco-spaces-logo.png" style="height:30px;" crossorigin="anonymous">
+                    <!-- Footer -->
+                    <div class="pdf-footer">
+                        <div class="pdf-footer-text">
+                            Generated on ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} at ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                            <br>Cisco Spaces Indoor Navigation Analytics
+                        </div>
+                        <img src="cisco-spaces-logo.png" class="pdf-footer-logo" crossorigin="anonymous">
                     </div>
                 </div>
             `;
             
-            // Create container
-            const pdfContainer = document.createElement('div');
-            pdfContainer.innerHTML = pdfHTML;
-            pdfContainer.style.position = 'absolute';
-            pdfContainer.style.left = '-9999px';
-            pdfContainer.style.top = '0';
             document.body.appendChild(pdfContainer);
             
-            // Wait for content and images to render
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            // Wait for images and styles to render
+            await new Promise(resolve => setTimeout(resolve, 1500));
             
-            // Generate PDF
-            const element = pdfContainer.firstElementChild;
+            // Generate PDF with optimized settings
+            const element = document.getElementById('pdf-content');
             const opt = {
-                margin: [10, 10, 10, 10],
+                margin: 0,
                 filename: `Indoor_Navigation_Report_${customerName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`,
-                image: { type: 'jpeg', quality: 0.98 },
+                image: { type: 'png', quality: 1 },
                 html2canvas: { 
-                    scale: 2, 
+                    scale: 2,
                     useCORS: true,
                     logging: false,
                     allowTaint: true,
-                    backgroundColor: '#ffffff'
+                    backgroundColor: '#0f0f1a',
+                    imageTimeout: 15000,
+                    removeContainer: false
                 },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                jsPDF: { 
+                    unit: 'mm', 
+                    format: 'a4', 
+                    orientation: 'portrait'
+                },
+                pagebreak: { mode: ['css', 'legacy'] }
             };
             
             try {
@@ -2845,6 +3017,8 @@
                 alert('Error generating PDF. Please try again.');
             }
             
+            // Cleanup
+            if (sankeyImg) URL.revokeObjectURL(sankeyImg);
             document.body.removeChild(pdfContainer);
             showLoading(false);
         }
