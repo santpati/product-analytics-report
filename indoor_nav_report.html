@@ -748,7 +748,7 @@
                         pipeline: [
                             { source: { trackEvents: { trackTypeId: QR_SCAN_TRACK_ID }, timeSeries: { period: 'dayRange', first: startMs, last: endMs } } },
                             { filter: `accountId == "${accountId}"` },
-                            { group: { group: ['mobileOs'], fields: [{ count: { sum: 'numEvents' } }] } }
+                            { group: { group: ['properties.mobileOs'], fields: [{ count: { sum: 'numEvents' } }] } }
                         ]
                     }
                 };
@@ -895,13 +895,15 @@
             let ios = 0, android = 0, web = 0;
             
             data.forEach(d => {
-                const os = (d.mobileOs || '').toLowerCase();
+                const os = (d.properties?.mobileOs || '').toLowerCase();
                 const count = d.count || 0;
                 
-                if (os.includes('ios') || os === 'iphone' || os === 'ipad') {
+                if (os === 'ios' || os === 'iphone' || os === 'ipad') {
                     ios += count;
-                } else if (os.includes('android')) {
+                } else if (os === 'android') {
                     android += count;
+                } else if (os === 'web' || os === '') {
+                    web += count;
                 } else {
                     web += count;
                 }
