@@ -390,6 +390,238 @@
             }
         }
         
+        /* Advanced Analytics Checkbox */
+        .advanced-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.8);
+            padding: 10px 16px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            transition: all 0.2s;
+        }
+        
+        .advanced-checkbox:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .advanced-checkbox input {
+            display: none;
+        }
+        
+        .advanced-checkbox .checkmark {
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            border-radius: 4px;
+            position: relative;
+            transition: all 0.2s;
+        }
+        
+        .advanced-checkbox input:checked + .checkmark {
+            background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%);
+            border-color: transparent;
+        }
+        
+        .advanced-checkbox input:checked + .checkmark::after {
+            content: '';
+            position: absolute;
+            left: 5px;
+            top: 2px;
+            width: 5px;
+            height: 9px;
+            border: solid white;
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg);
+        }
+        
+        /* Funnel Section */
+        .funnel-section {
+            display: none;
+            margin-bottom: 32px;
+        }
+        
+        .funnel-section.active {
+            display: block;
+        }
+        
+        .funnel-container {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 32px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        
+        .funnel-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 32px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .funnel-title svg {
+            width: 24px;
+            height: 24px;
+            fill: #ec4899;
+        }
+        
+        .funnel-flow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0;
+            padding: 20px 0;
+        }
+        
+        .funnel-node {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        
+        .funnel-node-box {
+            padding: 24px 32px;
+            border-radius: 16px;
+            min-width: 180px;
+            transition: transform 0.2s;
+        }
+        
+        .funnel-node-box:hover {
+            transform: scale(1.05);
+        }
+        
+        .funnel-node-box.start {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(37, 99, 235, 0.2) 100%);
+            border: 2px solid rgba(59, 130, 246, 0.5);
+        }
+        
+        .funnel-node-box.completed {
+            background: linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(22, 163, 74, 0.2) 100%);
+            border: 2px solid rgba(34, 197, 94, 0.5);
+        }
+        
+        .funnel-node-box.canceled {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(220, 38, 38, 0.2) 100%);
+            border: 2px solid rgba(239, 68, 68, 0.5);
+        }
+        
+        .funnel-node-label {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .funnel-node-value {
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        
+        .funnel-node-box.start .funnel-node-value {
+            color: #3b82f6;
+        }
+        
+        .funnel-node-box.completed .funnel-node-value {
+            color: #22c55e;
+        }
+        
+        .funnel-node-box.canceled .funnel-node-value {
+            color: #ef4444;
+        }
+        
+        .funnel-node-name {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.8);
+            font-weight: 500;
+        }
+        
+        .funnel-node-percent {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 4px;
+        }
+        
+        .funnel-arrow {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 0 16px;
+        }
+        
+        .funnel-arrow-line {
+            width: 60px;
+            height: 3px;
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.1) 100%);
+            position: relative;
+        }
+        
+        .funnel-arrow-line::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: -4px;
+            border: 5px solid transparent;
+            border-left: 8px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .funnel-branch {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+        
+        .funnel-branch-item {
+            display: flex;
+            align-items: center;
+        }
+        
+        .funnel-note {
+            margin-top: 24px;
+            padding: 16px 20px;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .funnel-note svg {
+            width: 20px;
+            height: 20px;
+            fill: #ef4444;
+            flex-shrink: 0;
+        }
+        
+        .funnel-note-text {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        @media (max-width: 900px) {
+            .funnel-flow {
+                flex-direction: column;
+                gap: 16px;
+            }
+            .funnel-arrow {
+                transform: rotate(90deg);
+            }
+            .funnel-branch {
+                flex-direction: column;
+            }
+        }
+        
         .control-group input:focus,
         .control-group select:focus {
             outline: none;
@@ -808,6 +1040,11 @@
             <div class="site-actions">
                 <button class="select-all-btn" onclick="selectAllSites()">Select All</button>
                 <button class="clear-btn" onclick="clearSiteSelection()">Clear</button>
+                <label class="advanced-checkbox">
+                    <input type="checkbox" id="advancedAnalytics">
+                    <span class="checkmark"></span>
+                    Advanced Analytics
+                </label>
                 <button class="load-btn" id="loadBtn" onclick="loadData()">
                     Load Data
                 </button>
@@ -982,6 +1219,74 @@
                 </div>
             </div>
         </div>
+        
+        <!-- Advanced Analytics: Funnel Section (hidden by default) -->
+        <div class="funnel-section" id="funnelSection">
+            <div class="divider"></div>
+            <div class="section-title">Advanced Analytics • Navigation Funnel</div>
+            
+            <div class="funnel-container">
+                <div class="funnel-title">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"/>
+                    </svg>
+                    Indoor Navigation Journey
+                </div>
+                
+                <div class="funnel-flow">
+                    <!-- Start Node -->
+                    <div class="funnel-node">
+                        <div class="funnel-node-box start">
+                            <div class="funnel-node-label">Started</div>
+                            <div class="funnel-node-value" id="navStarted">--</div>
+                            <div class="funnel-node-name">Navigation Started</div>
+                        </div>
+                    </div>
+                    
+                    <div class="funnel-arrow">
+                        <div class="funnel-arrow-line"></div>
+                    </div>
+                    
+                    <!-- Branch: Completed & Canceled -->
+                    <div class="funnel-branch">
+                        <div class="funnel-branch-item">
+                            <div class="funnel-arrow">
+                                <div class="funnel-arrow-line"></div>
+                            </div>
+                            <div class="funnel-node">
+                                <div class="funnel-node-box completed">
+                                    <div class="funnel-node-label">Completed</div>
+                                    <div class="funnel-node-value" id="navCompleted">--</div>
+                                    <div class="funnel-node-name">Navigation Completed</div>
+                                    <div class="funnel-node-percent" id="navCompletedPercent">--</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="funnel-branch-item">
+                            <div class="funnel-arrow">
+                                <div class="funnel-arrow-line"></div>
+                            </div>
+                            <div class="funnel-node">
+                                <div class="funnel-node-box canceled">
+                                    <div class="funnel-node-label">Canceled</div>
+                                    <div class="funnel-node-value" id="navCanceled">--</div>
+                                    <div class="funnel-node-name">Navigation Canceled</div>
+                                    <div class="funnel-node-percent" id="navCanceledPercent">--</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="funnel-note">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+                    </svg>
+                    <span class="funnel-note-text">Many users cancel navigation once the destination is closer.</span>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/wordcloud@1.2.2/src/wordcloud2.min.js"></script>
@@ -995,6 +1300,9 @@
         const POI_TRACK_ID = 'RyI0lQYmAm7X8u-ju0JPDEuT0WI';
         const QUICK_ACCESS_TRACK_ID = 'UiyouU6Qy0KZNjWKK7-ZdSGWXWg';
         const SEARCH_TRACK_ID = 'eSTPbxzLYDNmuE5PMGTmkpEc-eA';
+        const NAV_STARTED_TRACK_ID = '4QTXhzSkmpjAP4FywPnvA0YCmJI';
+        const NAV_COMPLETED_TRACK_ID = 'QdyV4HMxtwBpNXJyDOM43XulUT4';
+        const NAV_CANCELED_TRACK_ID = 'CPt265KAiw-MP-XgB6hYZB0hAX0';
         
         const DEFAULT_TENANT_ID = '16007';
         const DEFAULT_DURATION = '30';
@@ -1379,6 +1687,72 @@
                 const searchTermsResult = await fetchAggregation(searchTermsQuery);
                 searchTermsData = searchTermsResult?.results || [];
                 renderWordCloud(searchTermsData);
+                
+                // Check if Advanced Analytics is enabled
+                const advancedEnabled = document.getElementById('advancedAnalytics').checked;
+                const funnelSection = document.getElementById('funnelSection');
+                
+                if (advancedEnabled) {
+                    funnelSection.classList.add('active');
+                    
+                    // 11. Fetch Navigation Started
+                    const navStartedQuery = {
+                        response: { mimeType: 'application/json' },
+                        request: {
+                            pipeline: [
+                                { source: { trackEvents: { trackTypeId: NAV_STARTED_TRACK_ID }, timeSeries: { period: 'dayRange', first: startMs, last: endMs } } },
+                                { filter: filterExpr },
+                                { group: { fields: [{ count: { sum: 'numEvents' } }] } }
+                            ]
+                        }
+                    };
+                    const navStartedData = await fetchAggregation(navStartedQuery);
+                    const navStarted = (navStartedData?.results?.[0]?.count) || 0;
+                    document.getElementById('navStarted').textContent = navStarted.toLocaleString();
+                    
+                    // 12. Fetch Navigation Completed
+                    const navCompletedQuery = {
+                        response: { mimeType: 'application/json' },
+                        request: {
+                            pipeline: [
+                                { source: { trackEvents: { trackTypeId: NAV_COMPLETED_TRACK_ID }, timeSeries: { period: 'dayRange', first: startMs, last: endMs } } },
+                                { filter: filterExpr },
+                                { group: { fields: [{ count: { sum: 'numEvents' } }] } }
+                            ]
+                        }
+                    };
+                    const navCompletedData = await fetchAggregation(navCompletedQuery);
+                    const navCompleted = (navCompletedData?.results?.[0]?.count) || 0;
+                    document.getElementById('navCompleted').textContent = navCompleted.toLocaleString();
+                    
+                    // 13. Fetch Navigation Canceled
+                    const navCanceledQuery = {
+                        response: { mimeType: 'application/json' },
+                        request: {
+                            pipeline: [
+                                { source: { trackEvents: { trackTypeId: NAV_CANCELED_TRACK_ID }, timeSeries: { period: 'dayRange', first: startMs, last: endMs } } },
+                                { filter: filterExpr },
+                                { group: { fields: [{ count: { sum: 'numEvents' } }] } }
+                            ]
+                        }
+                    };
+                    const navCanceledData = await fetchAggregation(navCanceledQuery);
+                    const navCanceled = (navCanceledData?.results?.[0]?.count) || 0;
+                    document.getElementById('navCanceled').textContent = navCanceled.toLocaleString();
+                    
+                    // Calculate percentages
+                    if (navStarted > 0) {
+                        const completedPercent = Math.round((navCompleted / navStarted) * 100);
+                        const canceledPercent = Math.round((navCanceled / navStarted) * 100);
+                        document.getElementById('navCompletedPercent').textContent = `${completedPercent}% of started`;
+                        document.getElementById('navCanceledPercent').textContent = `${canceledPercent}% of started`;
+                    } else {
+                        document.getElementById('navCompletedPercent').textContent = '--';
+                        document.getElementById('navCanceledPercent').textContent = '--';
+                    }
+                } else {
+                    funnelSection.classList.remove('active');
+                }
                 
             } catch (error) {
                 console.error('Error loading data:', error);
