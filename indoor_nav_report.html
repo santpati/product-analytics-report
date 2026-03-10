@@ -244,6 +244,75 @@
             }
         }
         
+        /* Quick Access Section */
+        .quickaccess-row {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+        
+        .metric-card-quickaccess {
+            background: linear-gradient(135deg, rgba(249, 115, 22, 0.12) 0%, rgba(234, 88, 12, 0.12) 100%);
+            border: 1px solid rgba(249, 115, 22, 0.25);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 32px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 16px;
+        }
+        
+        .quickaccess-icon {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 24px rgba(249, 115, 22, 0.3);
+        }
+        
+        .quickaccess-icon svg {
+            width: 36px;
+            height: 36px;
+            fill: white;
+        }
+        
+        .quickaccess-content {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .metric-value-hero.orange {
+            background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+        }
+        
+        .chart-card-quickaccess {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        
+        .quickaccess-chart-container {
+            height: 320px;
+            position: relative;
+        }
+        
+        @media (max-width: 1024px) {
+            .quickaccess-row {
+                grid-template-columns: 1fr;
+            }
+        }
+        
         .control-group input:focus,
         .control-group select:focus {
             outline: none;
@@ -780,6 +849,34 @@
                 </div>
             </div>
         </div>
+        
+        <div class="divider"></div>
+        
+        <!-- Section Title: Quick Access -->
+        <div class="section-title">Key Metrics • Quick Access</div>
+        
+        <!-- Row 5: Quick Access Metrics -->
+        <div class="quickaccess-row">
+            <div class="metric-card-quickaccess">
+                <div class="quickaccess-icon">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+                    </svg>
+                </div>
+                <div class="quickaccess-content">
+                    <div class="metric-label-hero">Total Quick-Access Selected</div>
+                    <div class="metric-value-hero orange" id="totalQuickAccess">--</div>
+                    <div class="metric-subtitle-hero">Total Quick access options selected for navigation</div>
+                </div>
+            </div>
+            
+            <div class="chart-card-quickaccess">
+                <div class="chart-title">Top 10 Quick-Access Categories</div>
+                <div class="quickaccess-chart-container">
+                    <canvas id="quickAccessChart"></canvas>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -790,6 +887,7 @@
         const INDOOR_NAV_SUFFIX = '_wf.ciscospaces.io';
         const QR_SCAN_TRACK_ID = 'WTbkpuIbpDRGeRZXHVyg6swMZf8';
         const POI_TRACK_ID = 'RyI0lQYmAm7X8u-ju0JPDEuT0WI';
+        const QUICK_ACCESS_TRACK_ID = 'UiyouU6Qy0KZNjWKK7-ZdSGWXWg';
         
         const DEFAULT_TENANT_ID = '16007';
         const DEFAULT_DURATION = '30';
@@ -797,9 +895,19 @@
         let trendsChart = null;
         let platformChart = null;
         let poiChart = null;
+        let quickAccessChart = null;
         let rawDailyData = [];
         let currentTrendsView = 'daily';
         let cachedTenantId = null;
+        
+        function parseQuickAccessCategory(category, params) {
+            if (category && category !== 'null') return category;
+            if (params) {
+                const match = params.match(/category=([^}]+)/);
+                if (match) return match[1].trim();
+            }
+            return null;
+        }
         
         function parsePoiInteracted(poiString) {
             if (!poiString) return { name: 'Unknown', typeCode: 'unknown' };
@@ -1102,6 +1210,36 @@
                 };
                 const poiBreakdownData = await fetchAggregation(poiBreakdownQuery);
                 renderPoiChart(poiBreakdownData?.results || []);
+                
+                // 7. Fetch total Quick-Access selected
+                const quickAccessTotalQuery = {
+                    response: { mimeType: 'application/json' },
+                    request: {
+                        pipeline: [
+                            { source: { trackEvents: { trackTypeId: QUICK_ACCESS_TRACK_ID }, timeSeries: { period: 'dayRange', first: startMs, last: endMs } } },
+                            { filter: filterExpr },
+                            { group: { fields: [{ count: { sum: 'numEvents' } }] } }
+                        ]
+                    }
+                };
+                const quickAccessTotalData = await fetchAggregation(quickAccessTotalQuery);
+                const totalQuickAccess = (quickAccessTotalData?.results?.[0]?.count) || 0;
+                document.getElementById('totalQuickAccess').textContent = totalQuickAccess.toLocaleString();
+                
+                // 8. Fetch Quick-Access breakdown by category
+                const quickAccessBreakdownQuery = {
+                    response: { mimeType: 'application/json' },
+                    request: {
+                        pipeline: [
+                            { source: { trackEvents: { trackTypeId: QUICK_ACCESS_TRACK_ID }, timeSeries: { period: 'dayRange', first: startMs, last: endMs } } },
+                            { filter: filterExpr },
+                            { group: { group: ['properties.category'], fields: [{ count: { sum: 'numEvents' } }] } },
+                            { sort: ['-count'] }
+                        ]
+                    }
+                };
+                const quickAccessBreakdownData = await fetchAggregation(quickAccessBreakdownQuery);
+                renderQuickAccessChart(quickAccessBreakdownData?.results || []);
                 
             } catch (error) {
                 console.error('Error loading data:', error);
@@ -1421,6 +1559,98 @@
             });
         }
         
+        function renderQuickAccessChart(data) {
+            const ctx = document.getElementById('quickAccessChart').getContext('2d');
+            
+            if (quickAccessChart) quickAccessChart.destroy();
+            
+            // Filter out null categories and get top 10
+            const filtered = data.filter(d => d.properties?.category && d.properties.category !== 'null');
+            const top10 = filtered.slice(0, 10).map(d => ({
+                label: d.properties.category,
+                count: d.count || 0
+            }));
+            
+            // Orange gradient colors
+            const colors = [
+                'rgba(249, 115, 22, 0.85)',
+                'rgba(234, 88, 12, 0.85)',
+                'rgba(251, 146, 60, 0.85)',
+                'rgba(253, 186, 116, 0.85)',
+                'rgba(255, 138, 76, 0.85)',
+                'rgba(245, 158, 11, 0.85)',
+                'rgba(217, 119, 6, 0.85)',
+                'rgba(180, 83, 9, 0.85)',
+                'rgba(146, 64, 14, 0.85)',
+                'rgba(124, 45, 18, 0.85)'
+            ];
+            
+            quickAccessChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: top10.length ? top10.map(d => d.label) : ['No Data'],
+                    datasets: [{
+                        label: 'Quick-Access Selections',
+                        data: top10.length ? top10.map(d => d.count) : [0],
+                        backgroundColor: colors.slice(0, top10.length),
+                        borderColor: colors.slice(0, top10.length).map(c => c.replace('0.85', '1')),
+                        borderWidth: 1,
+                        borderRadius: 6,
+                        barPercentage: 0.75
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        datalabels: {
+                            color: '#fff',
+                            anchor: 'end',
+                            align: 'end',
+                            offset: 4,
+                            font: {
+                                weight: '600',
+                                size: 11
+                            },
+                            formatter: function(value) {
+                                return value > 0 ? value : '';
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `Selections: ${context.raw.toLocaleString()}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: { 
+                                color: 'rgba(255, 255, 255, 0.6)',
+                                font: { size: 11 }
+                            }
+                        },
+                        y: {
+                            grid: { display: false },
+                            ticks: { 
+                                color: 'rgba(255, 255, 255, 0.8)',
+                                font: { size: 11 },
+                                crossAlign: 'far'
+                            }
+                        }
+                    },
+                    layout: {
+                        padding: { right: 40 }
+                    }
+                }
+            });
+        }
+        
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
             const { tenantId, duration } = parseUrlParams();
@@ -1432,6 +1662,7 @@
             renderTrendsChart('daily');
             renderPlatformChart([]);
             renderPoiChart([]);
+            renderQuickAccessChart([]);
         });
         
         // Allow Enter key to get data
