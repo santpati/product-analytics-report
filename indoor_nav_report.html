@@ -6,6 +6,7 @@
     <title>Indoor Navigation Report</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * {
@@ -439,7 +440,7 @@
             transform: rotate(45deg);
         }
         
-        /* Funnel Section */
+        /* Funnel/Sankey Section */
         .funnel-section {
             display: none;
             margin-bottom: 32px;
@@ -461,7 +462,7 @@
             font-size: 18px;
             font-weight: 600;
             color: rgba(255, 255, 255, 0.9);
-            margin-bottom: 32px;
+            margin-bottom: 24px;
             display: flex;
             align-items: center;
             gap: 12px;
@@ -473,117 +474,63 @@
             fill: #ec4899;
         }
         
-        .funnel-flow {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0;
-            padding: 20px 0;
+        .sankey-container {
+            width: 100%;
+            height: 350px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 16px;
+            overflow: hidden;
         }
         
-        .funnel-node {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+        .funnel-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-top: 24px;
+        }
+        
+        .funnel-stat-card {
+            padding: 20px;
+            border-radius: 16px;
             text-align: center;
         }
         
-        .funnel-node-box {
-            padding: 24px 32px;
-            border-radius: 16px;
-            min-width: 180px;
-            transition: transform 0.2s;
+        .funnel-stat-card.started {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(37, 99, 235, 0.15) 100%);
+            border: 1px solid rgba(59, 130, 246, 0.3);
         }
         
-        .funnel-node-box:hover {
-            transform: scale(1.05);
+        .funnel-stat-card.completed {
+            background: linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(22, 163, 74, 0.15) 100%);
+            border: 1px solid rgba(34, 197, 94, 0.3);
         }
         
-        .funnel-node-box.start {
-            background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(37, 99, 235, 0.2) 100%);
-            border: 2px solid rgba(59, 130, 246, 0.5);
+        .funnel-stat-card.canceled {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(220, 38, 38, 0.15) 100%);
+            border: 1px solid rgba(239, 68, 68, 0.3);
         }
         
-        .funnel-node-box.completed {
-            background: linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(22, 163, 74, 0.2) 100%);
-            border: 2px solid rgba(34, 197, 94, 0.5);
-        }
-        
-        .funnel-node-box.canceled {
-            background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(220, 38, 38, 0.2) 100%);
-            border: 2px solid rgba(239, 68, 68, 0.5);
-        }
-        
-        .funnel-node-label {
-            font-size: 13px;
-            color: rgba(255, 255, 255, 0.6);
-            margin-bottom: 8px;
+        .funnel-stat-label {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
             text-transform: uppercase;
             letter-spacing: 1px;
+            margin-bottom: 8px;
         }
         
-        .funnel-node-value {
-            font-size: 36px;
+        .funnel-stat-value {
+            font-size: 32px;
             font-weight: 700;
             margin-bottom: 4px;
         }
         
-        .funnel-node-box.start .funnel-node-value {
-            color: #3b82f6;
-        }
+        .funnel-stat-card.started .funnel-stat-value { color: #3b82f6; }
+        .funnel-stat-card.completed .funnel-stat-value { color: #22c55e; }
+        .funnel-stat-card.canceled .funnel-stat-value { color: #ef4444; }
         
-        .funnel-node-box.completed .funnel-node-value {
-            color: #22c55e;
-        }
-        
-        .funnel-node-box.canceled .funnel-node-value {
-            color: #ef4444;
-        }
-        
-        .funnel-node-name {
-            font-size: 14px;
-            color: rgba(255, 255, 255, 0.8);
-            font-weight: 500;
-        }
-        
-        .funnel-node-percent {
-            font-size: 12px;
-            color: rgba(255, 255, 255, 0.5);
-            margin-top: 4px;
-        }
-        
-        .funnel-arrow {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 0 16px;
-        }
-        
-        .funnel-arrow-line {
-            width: 60px;
-            height: 3px;
-            background: linear-gradient(90deg, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.1) 100%);
-            position: relative;
-        }
-        
-        .funnel-arrow-line::after {
-            content: '';
-            position: absolute;
-            right: 0;
-            top: -4px;
-            border: 5px solid transparent;
-            border-left: 8px solid rgba(255, 255, 255, 0.3);
-        }
-        
-        .funnel-branch {
-            display: flex;
-            flex-direction: column;
-            gap: 24px;
-        }
-        
-        .funnel-branch-item {
-            display: flex;
-            align-items: center;
+        .funnel-stat-percent {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.6);
         }
         
         .funnel-note {
@@ -609,16 +556,12 @@
             color: rgba(255, 255, 255, 0.7);
         }
         
-        @media (max-width: 900px) {
-            .funnel-flow {
-                flex-direction: column;
-                gap: 16px;
+        @media (max-width: 768px) {
+            .funnel-stats {
+                grid-template-columns: 1fr;
             }
-            .funnel-arrow {
-                transform: rotate(90deg);
-            }
-            .funnel-branch {
-                flex-direction: column;
+            .sankey-container {
+                height: 300px;
             }
         }
         
@@ -1223,7 +1166,7 @@
         <!-- Advanced Analytics: Funnel Section (hidden by default) -->
         <div class="funnel-section" id="funnelSection">
             <div class="divider"></div>
-            <div class="section-title">Advanced Analytics • Navigation Funnel</div>
+            <div class="section-title">Advanced Analytics • Navigation Flow</div>
             
             <div class="funnel-container">
                 <div class="funnel-title">
@@ -1233,49 +1176,25 @@
                     Indoor Navigation Journey
                 </div>
                 
-                <div class="funnel-flow">
-                    <!-- Start Node -->
-                    <div class="funnel-node">
-                        <div class="funnel-node-box start">
-                            <div class="funnel-node-label">Started</div>
-                            <div class="funnel-node-value" id="navStarted">--</div>
-                            <div class="funnel-node-name">Navigation Started</div>
-                        </div>
+                <!-- Sankey Diagram -->
+                <div class="sankey-container" id="sankeyChart"></div>
+                
+                <!-- Stats Cards -->
+                <div class="funnel-stats">
+                    <div class="funnel-stat-card started">
+                        <div class="funnel-stat-label">Navigation Started</div>
+                        <div class="funnel-stat-value" id="navStarted">--</div>
+                        <div class="funnel-stat-percent">Total journeys initiated</div>
                     </div>
-                    
-                    <div class="funnel-arrow">
-                        <div class="funnel-arrow-line"></div>
+                    <div class="funnel-stat-card completed">
+                        <div class="funnel-stat-label">Navigation Completed</div>
+                        <div class="funnel-stat-value" id="navCompleted">--</div>
+                        <div class="funnel-stat-percent" id="navCompletedPercent">--</div>
                     </div>
-                    
-                    <!-- Branch: Completed & Canceled -->
-                    <div class="funnel-branch">
-                        <div class="funnel-branch-item">
-                            <div class="funnel-arrow">
-                                <div class="funnel-arrow-line"></div>
-                            </div>
-                            <div class="funnel-node">
-                                <div class="funnel-node-box completed">
-                                    <div class="funnel-node-label">Completed</div>
-                                    <div class="funnel-node-value" id="navCompleted">--</div>
-                                    <div class="funnel-node-name">Navigation Completed</div>
-                                    <div class="funnel-node-percent" id="navCompletedPercent">--</div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="funnel-branch-item">
-                            <div class="funnel-arrow">
-                                <div class="funnel-arrow-line"></div>
-                            </div>
-                            <div class="funnel-node">
-                                <div class="funnel-node-box canceled">
-                                    <div class="funnel-node-label">Canceled</div>
-                                    <div class="funnel-node-value" id="navCanceled">--</div>
-                                    <div class="funnel-node-name">Navigation Canceled</div>
-                                    <div class="funnel-node-percent" id="navCanceledPercent">--</div>
-                                </div>
-                            </div>
-                        </div>
+                    <div class="funnel-stat-card canceled">
+                        <div class="funnel-stat-label">Navigation Canceled</div>
+                        <div class="funnel-stat-value" id="navCanceled">--</div>
+                        <div class="funnel-stat-percent" id="navCanceledPercent">--</div>
                     </div>
                 </div>
                 
@@ -1293,6 +1212,11 @@
     <script>
         // Register Chart.js datalabels plugin
         Chart.register(ChartDataLabels);
+        
+        // Load Google Charts
+        google.charts.load('current', {'packages':['sankey']});
+        let googleChartsLoaded = false;
+        google.charts.setOnLoadCallback(() => { googleChartsLoaded = true; });
         
         const BASE_URL = '/api/pendo';
         const INDOOR_NAV_SUFFIX = '_wf.ciscospaces.io';
@@ -1740,15 +1664,19 @@
                     const navCanceled = (navCanceledData?.results?.[0]?.count) || 0;
                     document.getElementById('navCanceled').textContent = navCanceled.toLocaleString();
                     
-                    // Calculate percentages
+                    // Calculate percentages and render Sankey
                     if (navStarted > 0) {
                         const completedPercent = Math.round((navCompleted / navStarted) * 100);
                         const canceledPercent = Math.round((navCanceled / navStarted) * 100);
-                        document.getElementById('navCompletedPercent').textContent = `${completedPercent}% of started`;
-                        document.getElementById('navCanceledPercent').textContent = `${canceledPercent}% of started`;
+                        document.getElementById('navCompletedPercent').textContent = `${completedPercent}% completion rate`;
+                        document.getElementById('navCanceledPercent').textContent = `${canceledPercent}% cancellation rate`;
+                        
+                        // Render Sankey diagram
+                        renderSankeyChart(navStarted, navCompleted, navCanceled);
                     } else {
                         document.getElementById('navCompletedPercent').textContent = '--';
                         document.getElementById('navCanceledPercent').textContent = '--';
+                        renderSankeyChart(0, 0, 0);
                     }
                 } else {
                     funnelSection.classList.remove('active');
@@ -2228,6 +2156,68 @@
                 drawOutOfBound: false,
                 shrinkToFit: true
             });
+        }
+        
+        function renderSankeyChart(started, completed, canceled) {
+            if (!googleChartsLoaded) {
+                setTimeout(() => renderSankeyChart(started, completed, canceled), 100);
+                return;
+            }
+            
+            const container = document.getElementById('sankeyChart');
+            
+            if (started === 0) {
+                container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:rgba(255,255,255,0.5);font-size:16px;">No navigation data available</div>';
+                return;
+            }
+            
+            const data = new google.visualization.DataTable();
+            data.addColumn('string', 'From');
+            data.addColumn('string', 'To');
+            data.addColumn('number', 'Count');
+            data.addColumn({type: 'string', role: 'tooltip'});
+            
+            const completedPercent = Math.round((completed / started) * 100);
+            const canceledPercent = Math.round((canceled / started) * 100);
+            
+            data.addRows([
+                ['Navigation Started', 'Navigation Completed', completed, 
+                 `Navigation Started → Completed\n${completed.toLocaleString()} users (${completedPercent}%)`],
+                ['Navigation Started', 'Navigation Canceled', canceled, 
+                 `Navigation Started → Canceled\n${canceled.toLocaleString()} users (${canceledPercent}%)`]
+            ]);
+            
+            const options = {
+                width: '100%',
+                height: 350,
+                sankey: {
+                    node: {
+                        colors: ['#3b82f6', '#22c55e', '#ef4444'],
+                        label: {
+                            fontName: 'Inter',
+                            fontSize: 14,
+                            color: '#ffffff',
+                            bold: true
+                        },
+                        nodePadding: 40,
+                        width: 20
+                    },
+                    link: {
+                        colorMode: 'gradient',
+                        colors: ['#3b82f6', '#22c55e', '#ef4444']
+                    },
+                    iterations: 32
+                },
+                tooltip: {
+                    textStyle: {
+                        fontName: 'Inter',
+                        fontSize: 13
+                    }
+                }
+            };
+            
+            const chart = new google.visualization.Sankey(container);
+            chart.draw(data, options);
         }
         
         // Initialize on page load
