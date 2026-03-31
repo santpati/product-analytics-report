@@ -3207,8 +3207,15 @@
                 await new Promise(resolve => setTimeout(resolve, 500));
             }
             
+            // Sync visitor trends view to match QR trends view
+            if (settings.trendsView !== currentVisitorTrendsView) {
+                setVisitorTrendsView(settings.trendsView);
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+            
             // Capture all charts as base64 images
             const trendsChartImg = document.getElementById('qrTrendsChart')?.toDataURL('image/png', 1.0) || '';
+            const visitorTrendsChartImg = document.getElementById('visitorTrendsChart')?.toDataURL('image/png', 1.0) || '';
             const platformChartImg = document.getElementById('platformChart')?.toDataURL('image/png', 1.0) || '';
             const poiChartImg = document.getElementById('poiChart')?.toDataURL('image/png', 1.0) || '';
             const quickAccessChartImg = document.getElementById('quickAccessChart')?.toDataURL('image/png', 1.0) || '';
@@ -3415,11 +3422,19 @@
             </div>
         </div>
         
-        <!-- Trends Chart -->
+        <!-- QR Scan Trends Chart -->
         <div class="section">
             <div class="chart-card">
                 <div class="chart-title">QR Scan Trends (${settings.trendsView.charAt(0).toUpperCase() + settings.trendsView.slice(1)})</div>
                 <img src="${trendsChartImg}" class="chart-img" style="height:220px; object-fit:contain;">
+            </div>
+        </div>
+        
+        <!-- Unique Visitors Trends Chart -->
+        <div class="section">
+            <div class="chart-card">
+                <div class="chart-title" style="color:#22c55e;">Unique Visitors Trends (${settings.trendsView.charAt(0).toUpperCase() + settings.trendsView.slice(1)})</div>
+                <img src="${visitorTrendsChartImg}" class="chart-img" style="height:220px; object-fit:contain;">
             </div>
         </div>
         
