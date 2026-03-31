@@ -104,7 +104,7 @@ Check that:
 ```bash
 cat > run_snapshot.sh << 'EOF'
 #!/bin/bash
-cd /Users/visbhatt/Documents/code/sample-app
+cd "$(dirname "$0")"
 source venv/bin/activate
 export $(cat .env | xargs)
 python pendo_dashboard_snapshot.py >> logs/snapshot.log 2>&1
@@ -123,14 +123,14 @@ mkdir -p logs
 crontab -e
 ```
 
-4. Add this line to run daily at 9 AM:
+4. Add this line to run daily at 9 AM (replace `$PROJECT_DIR` with your actual path):
 ```
-0 9 * * * /Users/visbhatt/Documents/code/sample-app/run_snapshot.sh
+0 9 * * * $PROJECT_DIR/run_snapshot.sh
 ```
 
 Or for 5 PM daily:
 ```
-0 17 * * * /Users/visbhatt/Documents/code/sample-app/run_snapshot.sh
+0 17 * * * $PROJECT_DIR/run_snapshot.sh
 ```
 
 5. Save and exit. Verify with:
@@ -150,7 +150,8 @@ crontab -l
 Create a LaunchAgent plist file:
 
 ```bash
-cat > ~/Library/LaunchAgents/com.pendo.snapshot.plist << 'EOF'
+# Replace $PROJECT_DIR with your actual project path
+cat > ~/Library/LaunchAgents/com.pendo.snapshot.plist << EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -159,7 +160,7 @@ cat > ~/Library/LaunchAgents/com.pendo.snapshot.plist << 'EOF'
     <string>com.pendo.snapshot</string>
     <key>ProgramArguments</key>
     <array>
-        <string>/Users/visbhatt/Documents/code/sample-app/run_snapshot.sh</string>
+        <string>$PROJECT_DIR/run_snapshot.sh</string>
     </array>
     <key>StartCalendarInterval</key>
     <dict>
@@ -169,9 +170,9 @@ cat > ~/Library/LaunchAgents/com.pendo.snapshot.plist << 'EOF'
         <integer>0</integer>
     </dict>
     <key>StandardOutPath</key>
-    <string>/Users/visbhatt/Documents/code/sample-app/logs/snapshot.log</string>
+    <string>$PROJECT_DIR/logs/snapshot.log</string>
     <key>StandardErrorPath</key>
-    <string>/Users/visbhatt/Documents/code/sample-app/logs/snapshot_error.log</string>
+    <string>$PROJECT_DIR/logs/snapshot_error.log</string>
 </dict>
 </plist>
 EOF
@@ -210,9 +211,9 @@ The script saves all screenshots locally. To clean up old screenshots:
 find screenshots/ -name "*.png" -mtime +7 -delete
 ```
 
-Add this to your cron job:
+Add this to your cron job (replace `$PROJECT_DIR` with your actual path):
 ```
-0 9 * * * /Users/visbhatt/Documents/code/sample-app/run_snapshot.sh && find /Users/visbhatt/Documents/code/sample-app/screenshots/ -name "*.png" -mtime +7 -delete
+0 9 * * * $PROJECT_DIR/run_snapshot.sh && find $PROJECT_DIR/screenshots/ -name "*.png" -mtime +7 -delete
 ```
 
 ## File Structure

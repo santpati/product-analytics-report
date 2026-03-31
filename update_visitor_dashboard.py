@@ -8,13 +8,16 @@ Run daily via cron to keep data updated.
 import json
 import subprocess
 import time
+import os
 from datetime import datetime, timedelta
 from collections import defaultdict
 
 API_KEY = "7d0eb12c-2c01-406a-9614-39a27227ca72.us"
 ACCOUNT_ID = "20482_ciscospaces.app"
-OUTPUT_FILE = "/Users/visbhatt/Documents/code/sample-app/visitor_dashboard.html"
-DATA_FILE = "/Users/visbhatt/Documents/code/sample-app/visitor_history.json"
+# Use paths relative to the script's directory
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+OUTPUT_FILE = os.path.join(SCRIPT_DIR, "visitor_dashboard.html")
+DATA_FILE = os.path.join(SCRIPT_DIR, "visitor_history.json")
 
 def fetch_aggregation(pipeline):
     payload = json.dumps({

@@ -5,7 +5,7 @@ Get your Pendo dashboard snapshots up and running in 5 minutes!
 ## Step 1: Run Setup (2 minutes)
 
 ```bash
-cd /Users/visbhatt/Documents/code/sample-app
+cd /path/to/product-analytics-report
 ./setup.sh
 ```
 
@@ -52,7 +52,7 @@ Check your email at visbhatt@cisco.com - you should receive the dashboard snapsh
 # Create wrapper script
 cat > run_snapshot.sh << 'EOF'
 #!/bin/bash
-cd /Users/visbhatt/Documents/code/sample-app
+cd "$(dirname "$0")"
 source venv/bin/activate
 export $(cat .env | xargs)
 python pendo_dashboard_snapshot.py >> logs/snapshot.log 2>&1
@@ -61,8 +61,8 @@ EOF
 chmod +x run_snapshot.sh
 mkdir -p logs
 
-# Add to cron (runs daily at 9 AM)
-(crontab -l 2>/dev/null; echo "0 9 * * * /Users/visbhatt/Documents/code/sample-app/run_snapshot.sh") | crontab -
+# Add to cron (runs daily at 9 AM) - replace $PROJECT_DIR with your actual path
+(crontab -l 2>/dev/null; echo "0 9 * * * $PROJECT_DIR/run_snapshot.sh") | crontab -
 ```
 
 ### Option B: Choose Your Schedule
@@ -72,11 +72,11 @@ Edit cron:
 crontab -e
 ```
 
-Add one of these lines:
+Add one of these lines (replace `$PROJECT_DIR` with your actual path):
 ```
-0 9 * * * /Users/visbhatt/Documents/code/sample-app/run_snapshot.sh    # Daily at 9 AM
-0 17 * * * /Users/visbhatt/Documents/code/sample-app/run_snapshot.sh   # Daily at 5 PM
-0 9 * * 1-5 /Users/visbhatt/Documents/code/sample-app/run_snapshot.sh  # Weekdays at 9 AM
+0 9 * * * $PROJECT_DIR/run_snapshot.sh    # Daily at 9 AM
+0 17 * * * $PROJECT_DIR/run_snapshot.sh   # Daily at 5 PM
+0 9 * * 1-5 $PROJECT_DIR/run_snapshot.sh  # Weekdays at 9 AM
 ```
 
 ## Done! 🎉

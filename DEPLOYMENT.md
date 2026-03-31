@@ -13,7 +13,7 @@ Once your EC2 is set up, use this simple workflow to deploy changes:
 ### Step 1: Commit and push your local changes
 
 ```bash
-cd /Users/santpati/Desktop/Folders/AI/git-repo/product-analytics-report
+cd /path/to/product-analytics-report
 git add .
 git commit -m "Your change description"
 git push origin main
@@ -32,10 +32,10 @@ That's it! ✅ View your dashboard at: **http://ec2-13-221-5-205.compute-1.amazo
 Create a local script for even easier deploys:
 
 ```bash
-# Create the script (run once)
+# Create the script (run once) - update PROJECT_DIR to your actual path
 cat > ~/deploy-to-aws.sh << 'EOF'
 #!/bin/bash
-cd /Users/santpati/Desktop/Folders/AI/git-repo/product-analytics-report
+cd "$HOME/product-analytics-report"  # Update this path
 
 echo "📤 Pushing to GitHub..."
 git add .
