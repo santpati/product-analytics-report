@@ -2037,11 +2037,12 @@
             const startDate = new Date(endDate);
             startDate.setDate(endDate.getDate() - (days - 1));
             
-            // Use UTC timestamps for Pendo API to avoid timezone issues
-            // Start: beginning of start day in UTC
-            const startMs = Date.UTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate(), 0, 0, 0, 0);
-            // End: end of end day in UTC
-            const endMs = Date.UTC(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 23, 59, 59, 999);
+            // Use UTC timestamps for Pendo API
+            // Pendo dayRange includes the day containing the timestamp, so we use:
+            // Start: noon UTC on start day (ensures we're in the correct day)
+            const startMs = Date.UTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate(), 12, 0, 0, 0);
+            // End: noon UTC on end day
+            const endMs = Date.UTC(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 12, 0, 0, 0);
             
             return {
                 startMs: startMs,
@@ -2062,9 +2063,10 @@
             // Calculate days: count of calendar days inclusive
             const daysDiff = Math.round((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
             
-            // Use UTC timestamps for Pendo API to avoid timezone issues
-            const startMs = Date.UTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate(), 0, 0, 0, 0);
-            const endMs = Date.UTC(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 23, 59, 59, 999);
+            // Use UTC timestamps for Pendo API
+            // Use noon UTC to ensure we're in the correct day
+            const startMs = Date.UTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate(), 12, 0, 0, 0);
+            const endMs = Date.UTC(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 12, 0, 0, 0);
             
             return {
                 startMs: startMs,
