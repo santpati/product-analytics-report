@@ -2029,42 +2029,48 @@
         
         function getDateRange(days) {
             // End date is yesterday (last complete day of data)
-            const end = new Date();
-            end.setDate(end.getDate() - 1);
-            end.setHours(23, 59, 59, 999);
+            const now = new Date();
+            const endDate = new Date(now);
+            endDate.setDate(now.getDate() - 1);
             
-            // Start date is (days) days before end date
-            const start = new Date(end);
-            start.setDate(end.getDate() - (days - 1));
-            start.setHours(0, 0, 0, 0);
+            // Start date is (days - 1) days before end date
+            const startDate = new Date(endDate);
+            startDate.setDate(endDate.getDate() - (days - 1));
+            
+            // Use UTC timestamps for Pendo API to avoid timezone issues
+            // Start: beginning of start day in UTC
+            const startMs = Date.UTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate(), 0, 0, 0, 0);
+            // End: end of end day in UTC
+            const endMs = Date.UTC(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 23, 59, 59, 999);
             
             return {
-                startMs: start.getTime(),
-                endMs: end.getTime(),
-                startDate: start,
-                endDate: end
+                startMs: startMs,
+                endMs: endMs,
+                startDate: startDate,
+                endDate: endDate
             };
         }
         
         function getCustomDateRange(startDateStr, endDateStr) {
-            // Parse dates properly to avoid timezone issues
-            // Input format: "YYYY-MM-DD"
+            // Parse dates - Input format: "YYYY-MM-DD"
             const startParts = startDateStr.split('-');
-            const start = new Date(startParts[0], startParts[1] - 1, startParts[2], 0, 0, 0, 0);
+            const startDate = new Date(startParts[0], startParts[1] - 1, startParts[2]);
             
             const endParts = endDateStr.split('-');
-            const end = new Date(endParts[0], endParts[1] - 1, endParts[2], 23, 59, 59, 999);
+            const endDate = new Date(endParts[0], endParts[1] - 1, endParts[2]);
             
             // Calculate days: count of calendar days inclusive
-            const startDay = new Date(start.getFullYear(), start.getMonth(), start.getDate());
-            const endDay = new Date(end.getFullYear(), end.getMonth(), end.getDate());
-            const daysDiff = Math.round((endDay - startDay) / (1000 * 60 * 60 * 24)) + 1;
+            const daysDiff = Math.round((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+            
+            // Use UTC timestamps for Pendo API to avoid timezone issues
+            const startMs = Date.UTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate(), 0, 0, 0, 0);
+            const endMs = Date.UTC(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 23, 59, 59, 999);
             
             return {
-                startMs: start.getTime(),
-                endMs: end.getTime(),
-                startDate: start,
-                endDate: end,
+                startMs: startMs,
+                endMs: endMs,
+                startDate: startDate,
+                endDate: endDate,
                 days: daysDiff
             };
         }
