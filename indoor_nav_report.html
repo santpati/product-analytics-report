@@ -2047,11 +2047,19 @@
         }
         
         function getCustomDateRange(startDateStr, endDateStr) {
-            const start = new Date(startDateStr);
-            start.setHours(0, 0, 0, 0);
-            const end = new Date(endDateStr);
-            end.setHours(23, 59, 59, 999);
-            const daysDiff = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+            // Parse dates properly to avoid timezone issues
+            // Input format: "YYYY-MM-DD"
+            const startParts = startDateStr.split('-');
+            const start = new Date(startParts[0], startParts[1] - 1, startParts[2], 0, 0, 0, 0);
+            
+            const endParts = endDateStr.split('-');
+            const end = new Date(endParts[0], endParts[1] - 1, endParts[2], 23, 59, 59, 999);
+            
+            // Calculate days: count of calendar days inclusive
+            const startDay = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+            const endDay = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+            const daysDiff = Math.round((endDay - startDay) / (1000 * 60 * 60 * 24)) + 1;
+            
             return {
                 startMs: start.getTime(),
                 endMs: end.getTime(),
