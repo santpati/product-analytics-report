@@ -123,6 +123,38 @@
             min-width: 160px;
         }
         
+        .custom-date-group {
+            min-width: 280px;
+        }
+        
+        .date-range-inputs {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .date-range-inputs input[type="date"] {
+            padding: 12px 14px;
+            font-size: 13px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            color: #fff;
+            font-family: inherit;
+            cursor: pointer;
+            min-width: 130px;
+        }
+        
+        .date-range-inputs input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+            cursor: pointer;
+        }
+        
+        .date-separator {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 13px;
+        }
+        
         .control-group input,
         .control-group select {
             padding: 14px 18px;
@@ -1492,13 +1524,22 @@
                 </div>
                 <div class="control-group duration-group">
                     <label>Duration</label>
-                    <select id="durationSelect">
+                    <select id="durationSelect" onchange="toggleCustomDateRange()">
                         <option value="7">Last 7 Days</option>
                         <option value="14">Last 14 Days</option>
                         <option value="30" selected>Last 30 Days</option>
                         <option value="60">Last 60 Days</option>
                         <option value="90">Last 90 Days</option>
+                        <option value="custom">Custom Range</option>
                     </select>
+                </div>
+                <div class="control-group custom-date-group" id="customDateGroup" style="display: none;">
+                    <label>Date Range</label>
+                    <div class="date-range-inputs">
+                        <input type="date" id="customStartDate" />
+                        <span class="date-separator">to</span>
+                        <input type="date" id="customEndDate" />
+                    </div>
                 </div>
                 <button class="load-btn" id="getDataBtn" onclick="getData()">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
@@ -1990,9 +2031,11 @@
             const end = new Date();
             end.setHours(23, 59, 59, 999);
             const start = new Date();
-            start.setDate(start.getDate() - days);
+            // Subtract (days - 1) to get exactly N days including today
+            // e.g., Last 14 Days: today + 13 previous days = 14 days total
+            start.setDate(start.getDate() - (days - 1));
             start.setHours(0, 0, 0, 0);
-            return { 
+            return {
                 startMs: start.getTime(),
                 endMs: end.getTime(),
                 startDate: start,
@@ -2000,9 +2043,87 @@
             };
         }
         
+        function getCustomDateRange(startDateStr, endDateStr) {
+            const start = new Date(startDateStr);
+            start.setHours(0, 0, 0, 0);
+            const end = new Date(endDateStr);
+            end.setHours(23, 59, 59, 999);
+            const daysDiff = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+            return {
+                startMs: start.getTime(),
+                endMs: end.getTime(),
+                startDate: start,
+                endDate: end,
+                days: daysDiff
+            };
+        }
+        
         function formatDateRange(startDate, endDate) {
             const options = { month: 'short', day: 'numeric', year: 'numeric' };
             return `${startDate.toLocaleDateString('en-US', options)} - ${endDate.toLocaleDateString('en-US', options)}`;
+        }
+        
+        function toggleCustomDateRange() {
+            const durationSelect = document.getElementById('durationSelect');
+            const customDateGroup = document.getElementById('customDateGroup');
+            
+            if (durationSelect.value === 'custom') {
+                customDateGroup.style.display = 'flex';
+                // Set default dates (last 30 days)
+                const today = new Date();
+                const thirtyDaysAgo = new Date();
+                thirtyDaysAgo.setDate(today.getDate() - 29);
+                
+                // Set max date to today, min date to 90 days ago
+                const maxDate = today.toISOString().split('T')[0];
+                const minDate = new Date();
+                minDate.setDate(today.getDate() - 89);
+                const minDateStr = minDate.toISOString().split('T')[0];
+                
+                document.getElementById('customStartDate').value = thirtyDaysAgo.toISOString().split('T')[0];
+                document.getElementById('customEndDate').value = maxDate;
+                document.getElementById('customStartDate').max = maxDate;
+                document.getElementById('customStartDate').min = minDateStr;
+                document.getElementById('customEndDate').max = maxDate;
+                document.getElementById('customEndDate').min = minDateStr;
+            } else {
+                customDateGroup.style.display = 'none';
+            }
+        }
+        
+        function getSelectedDateRange() {
+            const durationSelect = document.getElementById('durationSelect');
+            
+            if (durationSelect.value === 'custom') {
+                const startDateStr = document.getElementById('customStartDate').value;
+                const endDateStr = document.getElementById('customEndDate').value;
+                
+                if (!startDateStr || !endDateStr) {
+                    alert('Please select both start and end dates');
+                    return null;
+                }
+                
+                if (new Date(startDateStr) > new Date(endDateStr)) {
+                    alert('Start date must be before end date');
+                    return null;
+                }
+                
+                const range = getCustomDateRange(startDateStr, endDateStr);
+                return {
+                    ...range,
+                    isCustom: true,
+                    displayText: `${formatDateRange(range.startDate, range.endDate)} (${range.days} Days)`
+                };
+            } else {
+                const days = parseInt(durationSelect.value);
+                const range = getDateRange(days);
+                return {
+                    ...range,
+                    days: days,
+                    isCustom: false,
+                    displayText: `${formatDateRange(range.startDate, range.endDate)} (Last ${days} Days)`
+                };
+            }
         }
         
         function showLoading(show, text = 'Fetching data from Pendo...') {
@@ -2096,21 +2217,22 @@
         
         async function getData() {
             const tenantId = document.getElementById('tenantInput').value.trim();
-            const days = parseInt(document.getElementById('durationSelect').value);
             
             if (!tenantId) {
                 alert('Please enter a tenant ID');
                 return;
             }
             
+            const dateRange = getSelectedDateRange();
+            if (!dateRange) return;
+            
             showLoading(true, 'Fetching available sites...');
             
             const accountId = `${tenantId}${getAccountSuffix()}`;
-            const { startMs, endMs, startDate, endDate } = getDateRange(days);
+            const { startMs, endMs } = dateRange;
             
             document.getElementById('accountDisplay').textContent = accountId;
-            document.getElementById('dateRangeDisplay').textContent = 
-                `${formatDateRange(startDate, endDate)} (Last ${days} Days)`;
+            document.getElementById('dateRangeDisplay').textContent = dateRange.displayText;
             
             try {
                 const sites = await fetchSites(accountId, startMs, endMs);
@@ -2137,7 +2259,6 @@
         
         async function loadData() {
             const tenantId = document.getElementById('tenantInput').value.trim();
-            const days = parseInt(document.getElementById('durationSelect').value);
             const selectedSites = getSelectedSites();
             
             if (!tenantId) {
@@ -2145,10 +2266,13 @@
                 return;
             }
             
+            const dateRange = getSelectedDateRange();
+            if (!dateRange) return;
+            
             // Track report generation
             trackEvent('report_generated', {
                 tenant_id: tenantId,
-                duration_days: days
+                duration_days: dateRange.days
             });
             
             if (selectedSites.length === 0) {
@@ -2159,11 +2283,10 @@
             showLoading(true, 'Loading report data...');
             
             const accountId = `${tenantId}${getAccountSuffix()}`;
-            const { startMs, endMs, startDate, endDate } = getDateRange(days);
+            const { startMs, endMs } = dateRange;
             
             document.getElementById('accountDisplay').textContent = accountId;
-            document.getElementById('dateRangeDisplay').textContent = 
-                `${formatDateRange(startDate, endDate)} (Last ${days} Days)`;
+            document.getElementById('dateRangeDisplay').textContent = dateRange.displayText;
             
             try {
                 const filterExpr = buildSiteFilter(accountId, selectedSites);
@@ -3067,9 +3190,9 @@
             const sitesText = document.getElementById('exportSites').value || 'All Sites';
             const includeAdvanced = document.querySelector('input[name="exportAdvanced"]:checked').value === 'yes';
             const trendsView = document.querySelector('input[name="exportTrends"]:checked').value;
-            const days = document.getElementById('durationSelect').value;
-            const { startDate, endDate } = getDateRange(parseInt(days));
-            const dateRange = formatDateRange(startDate, endDate);
+            const selectedRange = getSelectedDateRange();
+            const days = selectedRange ? selectedRange.days : 30;
+            const dateRange = selectedRange ? formatDateRange(selectedRange.startDate, selectedRange.endDate) : '';
             
             return { customerName, sitesText, includeAdvanced, trendsView, days, dateRange };
         }
@@ -3192,10 +3315,10 @@
             
             // Track report download
             const tenantId = document.getElementById('tenantInput').value.trim();
-            const days = parseInt(document.getElementById('durationSelect').value);
+            const dateRange = getSelectedDateRange();
             trackEvent('report_downloaded', {
                 tenant_id: tenantId,
-                duration_days: days,
+                duration_days: dateRange ? dateRange.days : 0,
                 report_type: 'HTML'
             });
             
