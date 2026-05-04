@@ -2028,13 +2028,16 @@
         }
         
         function getDateRange(days) {
+            // End date is yesterday (last complete day of data)
             const end = new Date();
+            end.setDate(end.getDate() - 1);
             end.setHours(23, 59, 59, 999);
-            const start = new Date();
-            // Subtract (days - 1) to get exactly N days including today
-            // e.g., Last 14 Days: today + 13 previous days = 14 days total
-            start.setDate(start.getDate() - (days - 1));
+            
+            // Start date is (days) days before end date
+            const start = new Date(end);
+            start.setDate(end.getDate() - (days - 1));
             start.setHours(0, 0, 0, 0);
+            
             return {
                 startMs: start.getTime(),
                 endMs: end.getTime(),
