@@ -2583,31 +2583,33 @@
         
         // Get day initial (M, T, W, T, F, S, S)
         function getDayInitial(date) {
+            // Use UTC day to ensure consistency across timezones
             const days = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-            return days[date.getDay()];
+            return days[date.getUTCDay()];
         }
-        
+
         function aggregateData(data, view) {
             if (view === 'daily') {
                 const totalDays = data.length;
                 return data.map(d => {
                     const date = new Date(d.day);
                     const dayInit = getDayInitial(date);
-                    const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                    // Use UTC formatting to ensure dates match what we requested from Pendo
+                    const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
                     // For 60+ days, use compact format; otherwise show full
-                    const label = totalDays > 45 
-                        ? `${date.getDate()}${dayInit}` 
+                    const label = totalDays > 45
+                        ? `${date.getUTCDate()}${dayInit}`
                         : `${dateStr} · ${dayInit}`;
                     return { label, value: d.count || 0 };
                 });
             }
-            
+
             if (view === 'weekly') {
                 const weeks = {};
                 data.forEach(d => {
                     const date = new Date(d.day);
-                    const weekStart = new Date(date);
-                    weekStart.setDate(date.getDate() - date.getDay());
+                    // Use UTC methods for week calculation
+                    const weekStart = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() - date.getUTCDay()));
                     const key = weekStart.toISOString().split('T')[0];
                     if (!weeks[key]) {
                         weeks[key] = { start: weekStart, total: 0 };
@@ -2617,29 +2619,30 @@
                 return Object.entries(weeks)
                     .sort(([a], [b]) => a.localeCompare(b))
                     .map(([key, val]) => ({
-                        label: `Week of ${val.start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
+                        label: `Week of ${val.start.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })}`,
                         value: val.total
                     }));
             }
-            
+
             if (view === 'monthly') {
                 const months = {};
                 data.forEach(d => {
                     const date = new Date(d.day);
-                    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                    // Use UTC methods for month grouping
+                    const key = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
                     if (!months[key]) {
-                        months[key] = { date: new Date(date.getFullYear(), date.getMonth(), 1), total: 0 };
+                        months[key] = { date: new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1)), total: 0 };
                     }
                     months[key].total += (d.count || 0);
                 });
                 return Object.entries(months)
                     .sort(([a], [b]) => a.localeCompare(b))
                     .map(([key, val]) => ({
-                        label: val.date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+                        label: val.date.toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' }),
                         value: val.total
                     }));
             }
-            
+
             return [];
         }
         
