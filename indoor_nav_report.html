@@ -2028,57 +2028,58 @@
         }
         
         function getDateRange(days) {
-            // End date is yesterday (last complete day of data)
+            // Use UTC consistently for both display and API to avoid timezone issues
+            // Get current UTC date
             const now = new Date();
-            const endDate = new Date(now);
-            endDate.setDate(now.getDate() - 1);
+            const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+            
+            // End date is yesterday in UTC (last complete day of data)
+            const endDateUTC = new Date(todayUTC);
+            endDateUTC.setUTCDate(todayUTC.getUTCDate() - 1);
             
             // Start date is (days - 1) days before end date
-            const startDate = new Date(endDate);
-            startDate.setDate(endDate.getDate() - (days - 1));
+            const startDateUTC = new Date(endDateUTC);
+            startDateUTC.setUTCDate(endDateUTC.getUTCDate() - (days - 1));
             
-            // Use UTC timestamps for Pendo API
-            // Pendo dayRange includes the day containing the timestamp, so we use:
-            // Start: noon UTC on start day (ensures we're in the correct day)
-            const startMs = Date.UTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate(), 12, 0, 0, 0);
-            // End: noon UTC on end day
-            const endMs = Date.UTC(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 12, 0, 0, 0);
+            // API timestamps at noon UTC
+            const startMs = Date.UTC(startDateUTC.getUTCFullYear(), startDateUTC.getUTCMonth(), startDateUTC.getUTCDate(), 12, 0, 0, 0);
+            const endMs = Date.UTC(endDateUTC.getUTCFullYear(), endDateUTC.getUTCMonth(), endDateUTC.getUTCDate(), 12, 0, 0, 0);
             
             return {
                 startMs: startMs,
                 endMs: endMs,
-                startDate: startDate,
-                endDate: endDate
+                startDate: startDateUTC,
+                endDate: endDateUTC
             };
         }
         
         function getCustomDateRange(startDateStr, endDateStr) {
-            // Parse dates - Input format: "YYYY-MM-DD"
+            // Parse dates as UTC - Input format: "YYYY-MM-DD"
             const startParts = startDateStr.split('-');
-            const startDate = new Date(startParts[0], startParts[1] - 1, startParts[2]);
+            const startDateUTC = new Date(Date.UTC(parseInt(startParts[0]), parseInt(startParts[1]) - 1, parseInt(startParts[2])));
             
             const endParts = endDateStr.split('-');
-            const endDate = new Date(endParts[0], endParts[1] - 1, endParts[2]);
+            const endDateUTC = new Date(Date.UTC(parseInt(endParts[0]), parseInt(endParts[1]) - 1, parseInt(endParts[2])));
             
             // Calculate days: count of calendar days inclusive
-            const daysDiff = Math.round((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+            const daysDiff = Math.round((endDateUTC - startDateUTC) / (1000 * 60 * 60 * 24)) + 1;
             
-            // Use UTC timestamps for Pendo API
-            // Use noon UTC to ensure we're in the correct day
-            const startMs = Date.UTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate(), 12, 0, 0, 0);
-            const endMs = Date.UTC(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 12, 0, 0, 0);
+            // API timestamps at noon UTC
+            const startMs = Date.UTC(startDateUTC.getUTCFullYear(), startDateUTC.getUTCMonth(), startDateUTC.getUTCDate(), 12, 0, 0, 0);
+            const endMs = Date.UTC(endDateUTC.getUTCFullYear(), endDateUTC.getUTCMonth(), endDateUTC.getUTCDate(), 12, 0, 0, 0);
             
             return {
                 startMs: startMs,
                 endMs: endMs,
-                startDate: startDate,
-                endDate: endDate,
+                startDate: startDateUTC,
+                endDate: endDateUTC,
                 days: daysDiff
             };
         }
         
         function formatDateRange(startDate, endDate) {
-            const options = { month: 'short', day: 'numeric', year: 'numeric' };
+            // Format UTC dates consistently regardless of user's timezone
+            const options = { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' };
             return `${startDate.toLocaleDateString('en-US', options)} - ${endDate.toLocaleDateString('en-US', options)}`;
         }
         
@@ -2088,22 +2089,35 @@
             
             if (durationSelect.value === 'custom') {
                 customDateGroup.style.display = 'flex';
-                // Set default dates (last 30 days)
-                const today = new Date();
-                const thirtyDaysAgo = new Date();
-                thirtyDaysAgo.setDate(today.getDate() - 29);
                 
-                // Set max date to today, min date to 90 days ago
-                const maxDate = today.toISOString().split('T')[0];
-                const minDate = new Date();
-                minDate.setDate(today.getDate() - 89);
-                const minDateStr = minDate.toISOString().split('T')[0];
+                // Use UTC dates consistently
+                const now = new Date();
+                const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
                 
-                document.getElementById('customStartDate').value = thirtyDaysAgo.toISOString().split('T')[0];
-                document.getElementById('customEndDate').value = maxDate;
-                document.getElementById('customStartDate').max = maxDate;
+                // Yesterday UTC (last complete day)
+                const yesterdayUTC = new Date(todayUTC);
+                yesterdayUTC.setUTCDate(todayUTC.getUTCDate() - 1);
+                
+                // 30 days ago from yesterday
+                const thirtyDaysAgoUTC = new Date(yesterdayUTC);
+                thirtyDaysAgoUTC.setUTCDate(yesterdayUTC.getUTCDate() - 29);
+                
+                // 90 days ago from yesterday (min date)
+                const ninetyDaysAgoUTC = new Date(yesterdayUTC);
+                ninetyDaysAgoUTC.setUTCDate(yesterdayUTC.getUTCDate() - 89);
+                
+                // Format as YYYY-MM-DD
+                const formatUTCDate = (d) => d.toISOString().split('T')[0];
+                
+                const maxDateStr = formatUTCDate(yesterdayUTC);
+                const minDateStr = formatUTCDate(ninetyDaysAgoUTC);
+                const defaultStartStr = formatUTCDate(thirtyDaysAgoUTC);
+                
+                document.getElementById('customStartDate').value = defaultStartStr;
+                document.getElementById('customEndDate').value = maxDateStr;
+                document.getElementById('customStartDate').max = maxDateStr;
                 document.getElementById('customStartDate').min = minDateStr;
-                document.getElementById('customEndDate').max = maxDate;
+                document.getElementById('customEndDate').max = maxDateStr;
                 document.getElementById('customEndDate').min = minDateStr;
             } else {
                 customDateGroup.style.display = 'none';
