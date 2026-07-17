@@ -1297,6 +1297,24 @@
         
         .chart-container-large.chart-daily-long {
             height: 300px;
+            min-width: 100%;
+        }
+        
+        .chart-scroll-wrap {
+            overflow-x: auto;
+            overflow-y: hidden;
+            margin-bottom: 4px;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+        }
+        
+        .chart-scroll-wrap::-webkit-scrollbar {
+            height: 6px;
+        }
+        
+        .chart-scroll-wrap::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.25);
+            border-radius: 3px;
         }
         
         .view-toggle {
@@ -1736,8 +1754,10 @@
                     </div>
                 </div>
                 <div class="chart-range-hint" id="qrTrendsHint"></div>
-                <div class="chart-container-large" id="qrTrendsChartContainer">
-                    <canvas id="qrTrendsChart"></canvas>
+                <div class="chart-scroll-wrap" id="qrTrendsScrollWrap">
+                    <div class="chart-container-large" id="qrTrendsChartContainer">
+                        <canvas id="qrTrendsChart"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1754,8 +1774,10 @@
                     </div>
                 </div>
                 <div class="chart-range-hint" id="visitorTrendsHint"></div>
-                <div class="chart-container-large" id="visitorTrendsChartContainer">
-                    <canvas id="visitorTrendsChart"></canvas>
+                <div class="chart-scroll-wrap" id="visitorTrendsScrollWrap">
+                    <div class="chart-container-large" id="visitorTrendsChartContainer">
+                        <canvas id="visitorTrendsChart"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
@@ -2012,10 +2034,12 @@
             const rangeLabel = formatDateRange(selectedRange.startDate, selectedRange.endDate);
             
             if (view === 'daily') {
+                const pointCount = loadedDailyPointCount || selectedRange.days;
+                let hint = `Daily totals · ${rangeLabel} · ${pointCount} day${pointCount === 1 ? '' : 's'}`;
                 if (selectedRange.days > 45) {
-                    return `Daily totals · ${rangeLabel} · Month bands group the x-axis; hover a bar for the full date`;
+                    hint += ' · Scroll horizontally to see all months · Month bands mark each calendar month';
                 }
-                return `Daily totals · ${rangeLabel}`;
+                return hint;
             }
             
             if (view === 'weekly') {
@@ -2120,10 +2144,20 @@
         }
         
         function renderTrendBarChart(canvasId, aggregated, view, datasetLabel, barColor, borderColor, chartRef) {
-            const ctx = document.getElementById(canvasId).getContext('2d');
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            const container = document.getElementById(canvasId.replace('Chart', 'ChartContainer'));
+            const scrollWrap = document.getElementById(canvasId.replace('Chart', 'ScrollWrap'));
+            
             if (chartRef.current) chartRef.current.destroy();
             
             updateTrendChartHints(view);
+            
+            const isLongDaily = view === 'daily' && aggregated.length > 45;
+            if (container) {
+                const minWidth = isLongDaily ? Math.max(960, aggregated.length * 4) : '';
+                container.style.minWidth = minWidth ? `${minWidth}px` : '';
+            }
             
             const labels = aggregated.map(d => d.label);
             const values = aggregated.map(d => d.value);
@@ -2138,9 +2172,9 @@
                         backgroundColor: barColor,
                         borderColor: borderColor,
                         borderWidth: 1,
-                        borderRadius: aggregated.length > 45 ? 4 : 8,
-                        barPercentage: aggregated.length > 45 ? 0.92 : 0.7,
-                        maxBarThickness: aggregated.length > 45 ? 8 : undefined
+                        borderRadius: isLongDaily ? 3 : 8,
+                        barPercentage: isLongDaily ? 0.95 : 0.7,
+                        maxBarThickness: isLongDaily ? 6 : undefined
                     }]
                 },
                 options: buildTrendBarChartOptions(aggregated, view, barColor, borderColor)
@@ -2203,8 +2237,122 @@
         let currentTrendsView = 'daily';
         let currentVisitorTrendsView = 'daily';
         let visitorTrendsChart = visitorTrendsChartRef;
+        const PENDO_DAILY_CHUNK_DAYS = 90;
+        const PENDO_AGGREGATION_LIMIT = 10000;
+        
         let cachedTenantId = null;
         let lastLoadedRangeKey = null;
+        let loadDataGeneration = 0;
+        let loadedDailyPointCount = 0;
+        
+        function normalizeDayKey(dayMs) {
+            const d = new Date(dayMs);
+            return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+        }
+        
+        function toNoonUtcMs(date) {
+            return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 12, 0, 0, 0);
+        }
+        
+        function getDateRangeChunks(dateRange, chunkDays = PENDO_DAILY_CHUNK_DAYS) {
+            if (!dateRange || dateRange.days <= chunkDays) {
+                return [{ startMs: dateRange.startMs, endMs: dateRange.endMs }];
+            }
+            
+            const chunks = [];
+            let cursor = new Date(dateRange.startDate.getTime());
+            const end = dateRange.endDate;
+            
+            while (cursor <= end) {
+                const chunkStart = new Date(cursor.getTime());
+                const chunkEnd = new Date(cursor.getTime());
+                chunkEnd.setUTCDate(chunkEnd.getUTCDate() + chunkDays - 1);
+                if (chunkEnd > end) chunkEnd.setTime(end.getTime());
+                
+                chunks.push({
+                    startMs: toNoonUtcMs(chunkStart),
+                    endMs: toNoonUtcMs(chunkEnd)
+                });
+                
+                cursor = new Date(chunkEnd.getTime());
+                cursor.setUTCDate(cursor.getUTCDate() + 1);
+            }
+            
+            return chunks;
+        }
+        
+        function fillDailySeriesToRange(results, dateRange) {
+            const byDay = new Map();
+            (results || []).forEach(row => {
+                byDay.set(normalizeDayKey(row.day), row.count || 0);
+            });
+            
+            const filled = [];
+            const cursor = new Date(dateRange.startDate.getTime());
+            const end = dateRange.endDate;
+            
+            while (cursor <= end) {
+                const dayMs = toNoonUtcMs(cursor);
+                filled.push({
+                    day: dayMs,
+                    count: byDay.get(normalizeDayKey(dayMs)) || 0
+                });
+                cursor.setUTCDate(cursor.getUTCDate() + 1);
+            }
+            
+            return filled;
+        }
+        
+        async function fetchDailyEventTrends(trackTypeId, filterExpr, dateRange) {
+            const chunks = getDateRangeChunks(dateRange);
+            const merged = new Map();
+            
+            for (const chunk of chunks) {
+                const query = {
+                    response: { mimeType: 'application/json' },
+                    request: {
+                        pipeline: [
+                            { source: { trackEvents: { trackTypeId }, timeSeries: { period: 'dayRange', first: chunk.startMs, last: chunk.endMs } } },
+                            { filter: filterExpr },
+                            { group: { group: ['day'], fields: [{ count: { sum: 'numEvents' } }] } },
+                            { sort: ['day'] },
+                            { limit: PENDO_AGGREGATION_LIMIT }
+                        ]
+                    }
+                };
+                const data = await fetchAggregation(query);
+                (data?.results || []).forEach(row => merged.set(normalizeDayKey(row.day), row));
+            }
+            
+            const mergedRows = Array.from(merged.values()).sort((a, b) => a.day - b.day);
+            return fillDailySeriesToRange(mergedRows, dateRange);
+        }
+        
+        async function fetchDailyVisitorTrends(trackTypeId, filterExpr, dateRange) {
+            const chunks = getDateRangeChunks(dateRange);
+            const merged = new Map();
+            
+            for (const chunk of chunks) {
+                const query = {
+                    response: { mimeType: 'application/json' },
+                    request: {
+                        pipeline: [
+                            { source: { trackEvents: { trackTypeId }, timeSeries: { period: 'dayRange', first: chunk.startMs, last: chunk.endMs } } },
+                            { filter: filterExpr },
+                            { group: { group: ['day', 'visitorId'], fields: [] } },
+                            { group: { group: ['day'], fields: [{ count: { count: null } }] } },
+                            { sort: ['day'] },
+                            { limit: PENDO_AGGREGATION_LIMIT }
+                        ]
+                    }
+                };
+                const data = await fetchAggregation(query);
+                (data?.results || []).forEach(row => merged.set(normalizeDayKey(row.day), row));
+            }
+            
+            const mergedRows = Array.from(merged.values()).sort((a, b) => a.day - b.day);
+            return fillDailySeriesToRange(mergedRows, dateRange);
+        }
         
         function getRangeKey(range) {
             if (!range) return null;
@@ -2222,6 +2370,7 @@
             rawVisitorDailyData = [];
             searchTermsData = [];
             lastLoadedRangeKey = null;
+            loadedDailyPointCount = 0;
             
             ['totalQRScans', 'uniqueVisitors', 'totalPOI', 'totalQuickAccess', 'totalSearches',
              'navStarted', 'navCompleted', 'navCanceled'].forEach(id => {
@@ -2247,6 +2396,7 @@
             }
             
             const hadLoadedData = !!lastLoadedRangeKey;
+            loadDataGeneration++;
             clearStaleReportData();
             
             const step2 = document.getElementById('step2Controls');
@@ -2581,6 +2731,8 @@
             const dateRange = getSelectedDateRange();
             if (!dateRange) return;
             
+            const generation = ++loadDataGeneration;
+            
             // Track report generation
             trackEvent('report_generated', {
                 tenant_id: tenantId,
@@ -2603,6 +2755,8 @@
             try {
                 const filterExpr = buildSiteFilter(accountId, selectedSites);
                 
+                const isStale = () => generation !== loadDataGeneration;
+                
                 // 1. Fetch total QR scans
                 const totalQuery = {
                     response: { mimeType: 'application/json' },
@@ -2615,6 +2769,7 @@
                     }
                 };
                 const totalData = await fetchAggregation(totalQuery);
+                if (isStale()) return;
                 const totalScans = (totalData?.results?.[0]?.count) || 0;
                 document.getElementById('totalQRScans').textContent = totalScans.toLocaleString();
                 
@@ -2625,45 +2780,25 @@
                         pipeline: [
                             { source: { trackEvents: { trackTypeId: QR_SCAN_TRACK_ID }, timeSeries: { period: 'dayRange', first: startMs, last: endMs } } },
                             { filter: filterExpr },
-                            { group: { group: ['visitorId'], fields: [{ count: { count: null } }] } }
+                            { group: { group: ['visitorId'], fields: [{ count: { count: null } }] } },
+                            { limit: PENDO_AGGREGATION_LIMIT }
                         ]
                     }
                 };
                 const uniqueData = await fetchAggregation(uniqueQuery);
+                if (isStale()) return;
                 const uniqueVisitors = uniqueData?.results?.length || 0;
                 document.getElementById('uniqueVisitors').textContent = uniqueVisitors.toLocaleString();
                 
-                // 3. Fetch daily trends (store raw data for aggregation)
-                const trendsQuery = {
-                    response: { mimeType: 'application/json' },
-                    request: {
-                        pipeline: [
-                            { source: { trackEvents: { trackTypeId: QR_SCAN_TRACK_ID }, timeSeries: { period: 'dayRange', first: startMs, last: endMs } } },
-                            { filter: filterExpr },
-                            { group: { group: ['day'], fields: [{ count: { sum: 'numEvents' } }] } },
-                            { sort: ['day'] }
-                        ]
-                    }
-                };
-                const trendsData = await fetchAggregation(trendsQuery);
-                rawDailyData = trendsData?.results || [];
+                // 3. Fetch daily trends — chunked to avoid Pendo's 90-row default cap on grouped daily results
+                rawDailyData = await fetchDailyEventTrends(QR_SCAN_TRACK_ID, filterExpr, dateRange);
+                if (isStale()) return;
+                loadedDailyPointCount = rawDailyData.length;
                 renderTrendsChart(currentTrendsView);
                 
-                // 3b. Fetch daily unique visitors (group by day, count distinct visitors)
-                const visitorTrendsQuery = {
-                    response: { mimeType: 'application/json' },
-                    request: {
-                        pipeline: [
-                            { source: { trackEvents: { trackTypeId: QR_SCAN_TRACK_ID }, timeSeries: { period: 'dayRange', first: startMs, last: endMs } } },
-                            { filter: filterExpr },
-                            { group: { group: ['day', 'visitorId'], fields: [] } },
-                            { group: { group: ['day'], fields: [{ count: { count: null } }] } },
-                            { sort: ['day'] }
-                        ]
-                    }
-                };
-                const visitorTrendsData = await fetchAggregation(visitorTrendsQuery);
-                rawVisitorDailyData = visitorTrendsData?.results || [];
+                // 3b. Fetch daily unique visitors
+                rawVisitorDailyData = await fetchDailyVisitorTrends(QR_SCAN_TRACK_ID, filterExpr, dateRange);
+                if (isStale()) return;
                 renderVisitorTrendsChart(currentVisitorTrendsView);
                 
                 // 4. Fetch platform breakdown by mobileOs
