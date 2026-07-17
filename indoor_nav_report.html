@@ -1283,6 +1283,22 @@
             color: rgba(255, 255, 255, 0.9);
         }
         
+        .chart-range-hint {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.45);
+            margin: 6px 0 12px;
+            line-height: 1.45;
+        }
+        
+        .chart-container-large {
+            height: 280px;
+            position: relative;
+        }
+        
+        .chart-container-large.chart-daily-long {
+            height: 300px;
+        }
+        
         .view-toggle {
             display: flex;
             gap: 4px;
@@ -1311,11 +1327,6 @@
         .view-toggle button.active {
             background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%);
             color: #fff;
-        }
-        
-        .chart-container-large {
-            height: 280px;
-            position: relative;
         }
         
         /* Row 3: Platform Breakdown */
@@ -1724,7 +1735,8 @@
                         <button data-view="monthly" onclick="setTrendsView('monthly')">Monthly</button>
                     </div>
                 </div>
-                <div class="chart-container-large">
+                <div class="chart-range-hint" id="qrTrendsHint"></div>
+                <div class="chart-container-large" id="qrTrendsChartContainer">
                     <canvas id="qrTrendsChart"></canvas>
                 </div>
             </div>
@@ -1741,7 +1753,8 @@
                         <button data-view="monthly" onclick="setVisitorTrendsView('monthly')">Monthly</button>
                     </div>
                 </div>
-                <div class="chart-container-large">
+                <div class="chart-range-hint" id="visitorTrendsHint"></div>
+                <div class="chart-container-large" id="visitorTrendsChartContainer">
                     <canvas id="visitorTrendsChart"></canvas>
                 </div>
             </div>
@@ -1931,6 +1944,214 @@
         // Register Chart.js datalabels plugin
         Chart.register(ChartDataLabels);
         
+        // Month band backgrounds for long daily trend charts (GA / Amplitude style)
+        const monthBandPlugin = {
+            id: 'monthBandPlugin',
+            beforeDatasetsDraw(chart, _args, opts) {
+                const series = opts?.series;
+                if (!opts?.enabled || !series?.length) return;
+                
+                const { ctx, chartArea, scales: { x } } = chart;
+                if (!x) return;
+                
+                const bands = [];
+                let current = {
+                    monthKey: series[0].monthKey,
+                    monthShort: series[0].monthShort,
+                    startIdx: 0
+                };
+                
+                series.forEach((point, index) => {
+                    if (point.monthKey !== current.monthKey) {
+                        bands.push({ ...current, endIdx: index - 1 });
+                        current = {
+                            monthKey: point.monthKey,
+                            monthShort: point.monthShort,
+                            startIdx: index
+                        };
+                    }
+                });
+                bands.push({ ...current, endIdx: series.length - 1 });
+                
+                const barWidth = series.length > 1
+                    ? Math.abs(x.getPixelForValue(1) - x.getPixelForValue(0))
+                    : 12;
+                
+                bands.forEach((band, index) => {
+                    const xStart = x.getPixelForValue(band.startIdx) - barWidth / 2;
+                    const xEnd = x.getPixelForValue(band.endIdx) + barWidth / 2;
+                    
+                    ctx.save();
+                    ctx.fillStyle = index % 2 === 0
+                        ? 'rgba(255, 255, 255, 0.025)'
+                        : 'rgba(255, 255, 255, 0.055)';
+                    ctx.fillRect(xStart, chartArea.top, xEnd - xStart, chartArea.bottom - chartArea.top);
+                    
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.55)';
+                    ctx.font = '600 11px Inter, sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'bottom';
+                    ctx.fillText(band.monthShort, (xStart + xEnd) / 2, chartArea.top - 6);
+                    ctx.restore();
+                });
+            }
+        };
+        Chart.register(monthBandPlugin);
+        
+        const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        
+        function countCalendarMonths(startDate, endDate) {
+            return (endDate.getUTCFullYear() - startDate.getUTCFullYear()) * 12
+                + (endDate.getUTCMonth() - startDate.getUTCMonth()) + 1;
+        }
+        
+        function getTrendChartHint(view) {
+            const selectedRange = getSelectedDateRange();
+            if (!selectedRange) return '';
+            
+            const rangeLabel = formatDateRange(selectedRange.startDate, selectedRange.endDate);
+            
+            if (view === 'daily') {
+                if (selectedRange.days > 45) {
+                    return `Daily totals · ${rangeLabel} · Month bands group the x-axis; hover a bar for the full date`;
+                }
+                return `Daily totals · ${rangeLabel}`;
+            }
+            
+            if (view === 'weekly') {
+                return `Weekly totals · ${rangeLabel} (${selectedRange.days} days)`;
+            }
+            
+            if (view === 'monthly') {
+                const monthCount = countCalendarMonths(selectedRange.startDate, selectedRange.endDate);
+                const thirtyDayPeriods = Math.round(selectedRange.days / 30);
+                let hint = `Calendar month totals · ${rangeLabel} · ${monthCount} month${monthCount === 1 ? '' : 's'}`;
+                if (monthCount > thirtyDayPeriods) {
+                    hint += ` (${selectedRange.days} days spans partial months at the start and end, so you see ${monthCount} buckets instead of ~${thirtyDayPeriods})`;
+                }
+                return hint;
+            }
+            
+            return '';
+        }
+        
+        function updateTrendChartHints(view) {
+            const hint = getTrendChartHint(view);
+            const qrHint = document.getElementById('qrTrendsHint');
+            const visitorHint = document.getElementById('visitorTrendsHint');
+            if (qrHint) qrHint.textContent = hint;
+            if (visitorHint) visitorHint.textContent = hint;
+            
+            const isLongDaily = view === 'daily' && (getSelectedDateRange()?.days || 0) > 45;
+            ['qrTrendsChartContainer', 'visitorTrendsChartContainer'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.classList.toggle('chart-daily-long', isLongDaily);
+            });
+        }
+        
+        function buildTrendBarChartOptions(aggregated, view, barColor, borderColor) {
+            const useMonthBands = view === 'daily' && aggregated.length > 45 && aggregated[0]?.monthKey;
+            const showBarLabels = aggregated.length <= 45;
+            
+            return {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    monthBandPlugin: {
+                        enabled: useMonthBands,
+                        series: aggregated
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 15, 26, 0.95)',
+                        titleColor: '#fff',
+                        bodyColor: 'rgba(255,255,255,0.85)',
+                        borderColor: 'rgba(255,255,255,0.12)',
+                        borderWidth: 1,
+                        callbacks: {
+                            title(items) {
+                                const point = aggregated[items[0]?.dataIndex];
+                                return point?.fullLabel || point?.label || items[0].label;
+                            },
+                            label(item) {
+                                return `${item.dataset.label || 'Count'}: ${item.formattedValue}`;
+                            }
+                        }
+                    },
+                    datalabels: {
+                        display: showBarLabels,
+                        color: '#fff',
+                        anchor: 'end',
+                        align: 'top',
+                        offset: 4,
+                        font: { weight: '600', size: 12 },
+                        formatter(value) {
+                            return value > 0 ? value : '';
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: {
+                            color: 'rgba(255, 255, 255, 0.6)',
+                            font: { size: 10 },
+                            maxRotation: 0,
+                            minRotation: 0,
+                            autoSkip: false,
+                            callback(_value, index) {
+                                return aggregated[index]?.label ?? '';
+                            }
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                        ticks: {
+                            color: 'rgba(255, 255, 255, 0.6)',
+                            font: { size: 12 }
+                        }
+                    }
+                },
+                layout: {
+                    padding: { top: useMonthBands ? 28 : 30 }
+                }
+            };
+        }
+        
+        function renderTrendBarChart(canvasId, aggregated, view, datasetLabel, barColor, borderColor, chartRef) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            if (chartRef.current) chartRef.current.destroy();
+            
+            updateTrendChartHints(view);
+            
+            const labels = aggregated.map(d => d.label);
+            const values = aggregated.map(d => d.value);
+            
+            chartRef.current = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels.length ? labels : ['No Data'],
+                    datasets: [{
+                        label: datasetLabel,
+                        data: values.length ? values : [0],
+                        backgroundColor: barColor,
+                        borderColor: borderColor,
+                        borderWidth: 1,
+                        borderRadius: aggregated.length > 45 ? 4 : 8,
+                        barPercentage: aggregated.length > 45 ? 0.92 : 0.7,
+                        maxBarThickness: aggregated.length > 45 ? 8 : undefined
+                    }]
+                },
+                options: buildTrendBarChartOptions(aggregated, view, barColor, borderColor)
+            });
+            
+            return chartRef.current;
+        }
+        
+        const qrTrendsChartRef = { current: null };
+        const visitorTrendsChartRef = { current: null };
+        
         // Analytics tracking function
         async function trackEvent(eventType, data = {}) {
             try {
@@ -1972,7 +2193,7 @@
         const DEFAULT_TENANT_ID = '16007';
         const DEFAULT_DURATION = '30';
         
-        let trendsChart = null;
+        let trendsChart = qrTrendsChartRef;
         let platformChart = null;
         let poiChart = null;
         let quickAccessChart = null;
@@ -1981,7 +2202,7 @@
         let rawVisitorDailyData = [];
         let currentTrendsView = 'daily';
         let currentVisitorTrendsView = 'daily';
-        let visitorTrendsChart = null;
+        let visitorTrendsChart = visitorTrendsChartRef;
         let cachedTenantId = null;
         let lastLoadedRangeKey = null;
         
@@ -2645,28 +2866,45 @@
             renderTrendsChart(view);
         }
         
-        // Get day initial (M, T, W, T, F, S, S)
-        function getDayInitial(date) {
-            // Use UTC day to ensure consistency across timezones
-            const days = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-            return days[date.getUTCDay()];
-        }
-
         function aggregateData(data, view) {
             const selectedRange = getSelectedDateRange();
             
             if (view === 'daily') {
-                const totalDays = data.length;
+                const rangeDays = selectedRange?.days || data.length;
+                const useMonthBands = rangeDays > 45;
+                
                 return data.map(d => {
                     const date = new Date(d.day);
-                    const dayInit = getDayInitial(date);
-                    // Use UTC formatting to ensure dates match what we requested from Pendo
-                    const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
-                    // For 60+ days, use compact format; otherwise show full
-                    const label = totalDays > 45
-                        ? `${date.getUTCDate()}${dayInit}`
-                        : `${dateStr} · ${dayInit}`;
-                    return { label, value: d.count || 0 };
+                    const monthShort = MONTH_SHORT[date.getUTCMonth()];
+                    const dayNum = date.getUTCDate();
+                    const monthKey = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
+                    const fullLabel = date.toLocaleDateString('en-US', {
+                        weekday: 'short',
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                        timeZone: 'UTC'
+                    });
+                    
+                    let label;
+                    if (!useMonthBands) {
+                        label = `${monthShort} ${dayNum}`;
+                    } else if (dayNum === 1) {
+                        label = monthShort;
+                    } else if (dayNum === 15) {
+                        label = String(dayNum);
+                    } else {
+                        label = '';
+                    }
+                    
+                    return {
+                        label,
+                        fullLabel,
+                        value: d.count || 0,
+                        monthKey,
+                        monthShort,
+                        date
+                    };
                 });
             }
 
@@ -2747,137 +2985,29 @@
         }
         
         function renderTrendsChart(view) {
-            const ctx = document.getElementById('qrTrendsChart').getContext('2d');
-            
-            if (trendsChart) trendsChart.destroy();
-            
             const aggregated = aggregateData(rawDailyData, view);
-            const labels = aggregated.map(d => d.label);
-            const values = aggregated.map(d => d.value);
-            
-            trendsChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels.length ? labels : ['No Data'],
-                    datasets: [{
-                        label: 'QR Scans',
-                        data: values.length ? values : [0],
-                        backgroundColor: 'rgba(0, 198, 255, 0.7)',
-                        borderColor: 'rgba(0, 198, 255, 1)',
-                        borderWidth: 1,
-                        borderRadius: 8,
-                        barPercentage: 0.7
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false },
-                        datalabels: {
-                            color: '#fff',
-                            anchor: 'end',
-                            align: 'top',
-                            offset: 4,
-                            font: {
-                                weight: '600',
-                                size: 12
-                            },
-                            formatter: function(value) {
-                                return value > 0 ? value : '';
-                            }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            grid: { display: false },
-                            ticks: { 
-                                color: 'rgba(255, 255, 255, 0.6)',
-                                font: { size: 11 },
-                                maxRotation: 45
-                            }
-                        },
-                        y: {
-                            beginAtZero: true,
-                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
-                            ticks: { 
-                                color: 'rgba(255, 255, 255, 0.6)',
-                                font: { size: 12 }
-                            }
-                        }
-                    },
-                    layout: {
-                        padding: { top: 30 }
-                    }
-                }
-            });
+            renderTrendBarChart(
+                'qrTrendsChart',
+                aggregated,
+                view,
+                'QR Scans',
+                'rgba(0, 198, 255, 0.7)',
+                'rgba(0, 198, 255, 1)',
+                qrTrendsChartRef
+            );
         }
         
         function renderVisitorTrendsChart(view) {
-            const ctx = document.getElementById('visitorTrendsChart').getContext('2d');
-            
-            if (visitorTrendsChart) visitorTrendsChart.destroy();
-            
             const aggregated = aggregateData(rawVisitorDailyData, view);
-            const labels = aggregated.map(d => d.label);
-            const values = aggregated.map(d => d.value);
-            
-            visitorTrendsChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels.length ? labels : ['No Data'],
-                    datasets: [{
-                        label: 'Unique Visitors',
-                        data: values.length ? values : [0],
-                        backgroundColor: 'rgba(34, 197, 94, 0.7)',
-                        borderColor: 'rgba(34, 197, 94, 1)',
-                        borderWidth: 1,
-                        borderRadius: 8,
-                        barPercentage: 0.7
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false },
-                        datalabels: {
-                            color: '#fff',
-                            anchor: 'end',
-                            align: 'top',
-                            offset: 4,
-                            font: {
-                                weight: '600',
-                                size: 12
-                            },
-                            formatter: function(value) {
-                                return value > 0 ? value : '';
-                            }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            grid: { display: false },
-                            ticks: { 
-                                color: 'rgba(255, 255, 255, 0.6)',
-                                font: { size: 11 },
-                                maxRotation: 45
-                            }
-                        },
-                        y: {
-                            beginAtZero: true,
-                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
-                            ticks: { 
-                                color: 'rgba(255, 255, 255, 0.6)',
-                                font: { size: 12 }
-                            }
-                        }
-                    },
-                    layout: {
-                        padding: { top: 30 }
-                    }
-                }
-            });
+            renderTrendBarChart(
+                'visitorTrendsChart',
+                aggregated,
+                view,
+                'Unique Visitors',
+                'rgba(34, 197, 94, 0.7)',
+                'rgba(34, 197, 94, 1)',
+                visitorTrendsChartRef
+            );
         }
         
         function setVisitorTrendsView(view) {
