@@ -1524,7 +1524,7 @@
                 </div>
                 <div class="control-group duration-group">
                     <label>Duration</label>
-                    <select id="durationSelect" onchange="toggleCustomDateRange()">
+                    <select id="durationSelect" onchange="handleDurationChange()">
                         <option value="7">Last 7 Days</option>
                         <option value="14">Last 14 Days</option>
                         <option value="30" selected>Last 30 Days</option>
@@ -1538,9 +1538,9 @@
                 <div class="control-group custom-date-group" id="customDateGroup" style="display: none;">
                     <label>Date Range</label>
                     <div class="date-range-inputs">
-                        <input type="date" id="customStartDate" />
+                        <input type="date" id="customStartDate" onchange="handleDurationChange()" />
                         <span class="date-separator">to</span>
-                        <input type="date" id="customEndDate" />
+                        <input type="date" id="customEndDate" onchange="handleDurationChange()" />
                     </div>
                 </div>
                 <button class="load-btn" id="getDataBtn" onclick="getData()">
@@ -1983,6 +1983,62 @@
         let currentVisitorTrendsView = 'daily';
         let visitorTrendsChart = null;
         let cachedTenantId = null;
+        let lastLoadedRangeKey = null;
+        
+        function getRangeKey(range) {
+            if (!range) return null;
+            return `${range.startMs}-${range.endMs}`;
+        }
+        
+        function isReportDataStale() {
+            if (!lastLoadedRangeKey) return false;
+            const current = getSelectedDateRange();
+            return !current || getRangeKey(current) !== lastLoadedRangeKey;
+        }
+        
+        function clearStaleReportData() {
+            rawDailyData = [];
+            rawVisitorDailyData = [];
+            searchTermsData = [];
+            lastLoadedRangeKey = null;
+            
+            ['totalQRScans', 'uniqueVisitors', 'totalPOI', 'totalQuickAccess', 'totalSearches',
+             'navStarted', 'navCompleted', 'navCanceled'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = '--';
+            });
+            
+            document.getElementById('downloadBtn').style.display = 'none';
+            renderTrendsChart(currentTrendsView);
+            renderVisitorTrendsChart(currentVisitorTrendsView);
+            renderPlatformChart([]);
+            renderPoiChart([]);
+            renderQuickAccessChart([]);
+            renderWordCloud([]);
+        }
+        
+        function handleDurationChange() {
+            toggleCustomDateRange();
+            
+            const dateRange = getSelectedDateRange();
+            if (dateRange) {
+                document.getElementById('dateRangeDisplay').textContent = dateRange.displayText;
+            }
+            
+            const hadLoadedData = !!lastLoadedRangeKey;
+            clearStaleReportData();
+            
+            const step2 = document.getElementById('step2Controls');
+            const tenantId = document.getElementById('tenantInput').value.trim();
+            const canReload = step2.style.display !== 'none' && tenantId && getSelectedSites().length > 0;
+            
+            if (hadLoadedData && canReload) {
+                loadData();
+            } else if (tenantId && step2.style.display === 'none') {
+                // Sites list may differ for longer ranges — refresh site picker
+                getData();
+            }
+        }
         
         function parseQuickAccessCategory(category, params) {
             if (category && category !== 'null') return category;
@@ -2573,11 +2629,17 @@
             
             // Show download button after data is loaded
             document.getElementById('downloadBtn').style.display = 'flex';
+            lastLoadedRangeKey = getRangeKey(dateRange);
         }
         
         function setTrendsView(view) {
             currentTrendsView = view;
-            document.querySelectorAll('.view-toggle button').forEach(btn => {
+            if (isReportDataStale()) {
+                loadData();
+                return;
+            }
+            const chartCard = document.getElementById('qrTrendsChart').closest('.chart-card-full');
+            chartCard.querySelectorAll('.view-toggle button').forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.view === view);
             });
             renderTrendsChart(view);
@@ -2591,6 +2653,8 @@
         }
 
         function aggregateData(data, view) {
+            const selectedRange = getSelectedDateRange();
+            
             if (view === 'daily') {
                 const totalDays = data.length;
                 return data.map(d => {
@@ -2610,7 +2674,6 @@
                 const weeks = {};
                 data.forEach(d => {
                     const date = new Date(d.day);
-                    // Use UTC methods for week calculation
                     const weekStart = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() - date.getUTCDay()));
                     const key = weekStart.toISOString().split('T')[0];
                     if (!weeks[key]) {
@@ -2618,6 +2681,26 @@
                     }
                     weeks[key].total += (d.count || 0);
                 });
+                
+                if (selectedRange) {
+                    const filled = [];
+                    let cursor = new Date(Date.UTC(
+                        selectedRange.startDate.getUTCFullYear(),
+                        selectedRange.startDate.getUTCMonth(),
+                        selectedRange.startDate.getUTCDate() - selectedRange.startDate.getUTCDay()
+                    ));
+                    const endDate = selectedRange.endDate;
+                    while (cursor <= endDate) {
+                        const key = cursor.toISOString().split('T')[0];
+                        filled.push({
+                            label: `Week of ${cursor.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })}`,
+                            value: weeks[key]?.total || 0
+                        });
+                        cursor = new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth(), cursor.getUTCDate() + 7));
+                    }
+                    return filled;
+                }
+                
                 return Object.entries(weeks)
                     .sort(([a], [b]) => a.localeCompare(b))
                     .map(([key, val]) => ({
@@ -2630,13 +2713,28 @@
                 const months = {};
                 data.forEach(d => {
                     const date = new Date(d.day);
-                    // Use UTC methods for month grouping
                     const key = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
                     if (!months[key]) {
                         months[key] = { date: new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1)), total: 0 };
                     }
                     months[key].total += (d.count || 0);
                 });
+                
+                if (selectedRange) {
+                    const filled = [];
+                    let cursor = new Date(Date.UTC(selectedRange.startDate.getUTCFullYear(), selectedRange.startDate.getUTCMonth(), 1));
+                    const endMonth = new Date(Date.UTC(selectedRange.endDate.getUTCFullYear(), selectedRange.endDate.getUTCMonth(), 1));
+                    while (cursor <= endMonth) {
+                        const key = `${cursor.getUTCFullYear()}-${String(cursor.getUTCMonth() + 1).padStart(2, '0')}`;
+                        filled.push({
+                            label: cursor.toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' }),
+                            value: months[key]?.total || 0
+                        });
+                        cursor = new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth() + 1, 1));
+                    }
+                    return filled;
+                }
+                
                 return Object.entries(months)
                     .sort(([a], [b]) => a.localeCompare(b))
                     .map(([key, val]) => ({
@@ -2784,6 +2882,10 @@
         
         function setVisitorTrendsView(view) {
             currentVisitorTrendsView = view;
+            if (isReportDataStale()) {
+                loadData();
+                return;
+            }
             const chartCard = document.getElementById('visitorTrendsChart').closest('.chart-card-full');
             chartCard.querySelectorAll('.view-toggle button').forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.view === view);
