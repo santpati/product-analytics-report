@@ -1530,6 +1530,8 @@
                         <option value="30" selected>Last 30 Days</option>
                         <option value="60">Last 60 Days</option>
                         <option value="90">Last 90 Days</option>
+                        <option value="120">Last 120 Days</option>
+                        <option value="180">Last 180 Days</option>
                         <option value="custom">Custom Range</option>
                     </select>
                 </div>
@@ -2102,15 +2104,15 @@
                 const thirtyDaysAgoUTC = new Date(yesterdayUTC);
                 thirtyDaysAgoUTC.setUTCDate(yesterdayUTC.getUTCDate() - 29);
                 
-                // 90 days ago from yesterday (min date)
-                const ninetyDaysAgoUTC = new Date(yesterdayUTC);
-                ninetyDaysAgoUTC.setUTCDate(yesterdayUTC.getUTCDate() - 89);
+                // 180 days ago from yesterday (min date)
+                const oneEightyDaysAgoUTC = new Date(yesterdayUTC);
+                oneEightyDaysAgoUTC.setUTCDate(yesterdayUTC.getUTCDate() - 179);
                 
                 // Format as YYYY-MM-DD
                 const formatUTCDate = (d) => d.toISOString().split('T')[0];
                 
                 const maxDateStr = formatUTCDate(yesterdayUTC);
-                const minDateStr = formatUTCDate(ninetyDaysAgoUTC);
+                const minDateStr = formatUTCDate(oneEightyDaysAgoUTC);
                 const defaultStartStr = formatUTCDate(thirtyDaysAgoUTC);
                 
                 document.getElementById('customStartDate').value = defaultStartStr;
