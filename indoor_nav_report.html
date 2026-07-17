@@ -1567,9 +1567,9 @@
                 <div class="control-group custom-date-group" id="customDateGroup" style="display: none;">
                     <label>Date Range</label>
                     <div class="date-range-inputs">
-                        <input type="date" id="customStartDate" onchange="handleDurationChange()" />
+                        <input type="date" id="customStartDate" onchange="handleCustomDateChange()" />
                         <span class="date-separator">to</span>
-                        <input type="date" id="customEndDate" onchange="handleDurationChange()" />
+                        <input type="date" id="customEndDate" onchange="handleCustomDateChange()" />
                     </div>
                 </div>
                 <button class="load-btn" id="getDataBtn" onclick="getData()">
@@ -2388,7 +2388,26 @@
         }
         
         function handleDurationChange() {
-            toggleCustomDateRange();
+            const isCustom = document.getElementById('durationSelect').value === 'custom';
+            applyDurationChange(isCustom);
+        }
+        
+        function handleCustomDateChange() {
+            if (document.getElementById('durationSelect').value !== 'custom') return;
+            
+            updateCustomDateBounds();
+            
+            const startInput = document.getElementById('customStartDate');
+            const endInput = document.getElementById('customEndDate');
+            if (startInput.value && endInput.value && startInput.value > endInput.value) {
+                endInput.value = startInput.value;
+            }
+            
+            applyDurationChange(false);
+        }
+        
+        function applyDurationChange(resetCustomDefaults = false) {
+            toggleCustomDateRange(resetCustomDefaults);
             
             const dateRange = getSelectedDateRange();
             if (dateRange) {
@@ -2406,7 +2425,6 @@
             if (hadLoadedData && canReload) {
                 loadData();
             } else if (tenantId && step2.style.display === 'none') {
-                // Sites list may differ for longer ranges — refresh site picker
                 getData();
             }
         }
@@ -2512,42 +2530,54 @@
             return `${startDate.toLocaleDateString('en-US', options)} - ${endDate.toLocaleDateString('en-US', options)}`;
         }
         
-        function toggleCustomDateRange() {
+        function updateCustomDateBounds() {
+            const now = new Date();
+            const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+            const yesterdayUTC = new Date(todayUTC);
+            yesterdayUTC.setUTCDate(todayUTC.getUTCDate() - 1);
+            const oneEightyDaysAgoUTC = new Date(yesterdayUTC);
+            oneEightyDaysAgoUTC.setUTCDate(yesterdayUTC.getUTCDate() - 179);
+            const formatUTCDate = (d) => d.toISOString().split('T')[0];
+            
+            const maxDateStr = formatUTCDate(yesterdayUTC);
+            const minDateStr = formatUTCDate(oneEightyDaysAgoUTC);
+            const startInput = document.getElementById('customStartDate');
+            const endInput = document.getElementById('customEndDate');
+            
+            startInput.min = minDateStr;
+            startInput.max = maxDateStr;
+            endInput.min = minDateStr;
+            endInput.max = maxDateStr;
+            
+            if (startInput.value) {
+                endInput.min = startInput.value;
+            }
+            if (endInput.value) {
+                startInput.max = endInput.value;
+            }
+        }
+        
+        function toggleCustomDateRange(resetDefaults = false) {
             const durationSelect = document.getElementById('durationSelect');
             const customDateGroup = document.getElementById('customDateGroup');
             
             if (durationSelect.value === 'custom') {
                 customDateGroup.style.display = 'flex';
+                updateCustomDateBounds();
                 
-                // Use UTC dates consistently
-                const now = new Date();
-                const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-                
-                // Yesterday UTC (last complete day)
-                const yesterdayUTC = new Date(todayUTC);
-                yesterdayUTC.setUTCDate(todayUTC.getUTCDate() - 1);
-                
-                // 30 days ago from yesterday
-                const thirtyDaysAgoUTC = new Date(yesterdayUTC);
-                thirtyDaysAgoUTC.setUTCDate(yesterdayUTC.getUTCDate() - 29);
-                
-                // 180 days ago from yesterday (min date)
-                const oneEightyDaysAgoUTC = new Date(yesterdayUTC);
-                oneEightyDaysAgoUTC.setUTCDate(yesterdayUTC.getUTCDate() - 179);
-                
-                // Format as YYYY-MM-DD
-                const formatUTCDate = (d) => d.toISOString().split('T')[0];
-                
-                const maxDateStr = formatUTCDate(yesterdayUTC);
-                const minDateStr = formatUTCDate(oneEightyDaysAgoUTC);
-                const defaultStartStr = formatUTCDate(thirtyDaysAgoUTC);
-                
-                document.getElementById('customStartDate').value = defaultStartStr;
-                document.getElementById('customEndDate').value = maxDateStr;
-                document.getElementById('customStartDate').max = maxDateStr;
-                document.getElementById('customStartDate').min = minDateStr;
-                document.getElementById('customEndDate').max = maxDateStr;
-                document.getElementById('customEndDate').min = minDateStr;
+                if (resetDefaults) {
+                    const now = new Date();
+                    const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+                    const yesterdayUTC = new Date(todayUTC);
+                    yesterdayUTC.setUTCDate(todayUTC.getUTCDate() - 1);
+                    const thirtyDaysAgoUTC = new Date(yesterdayUTC);
+                    thirtyDaysAgoUTC.setUTCDate(yesterdayUTC.getUTCDate() - 29);
+                    const formatUTCDate = (d) => d.toISOString().split('T')[0];
+                    
+                    document.getElementById('customStartDate').value = formatUTCDate(thirtyDaysAgoUTC);
+                    document.getElementById('customEndDate').value = formatUTCDate(yesterdayUTC);
+                    updateCustomDateBounds();
+                }
             } else {
                 customDateGroup.style.display = 'none';
             }
