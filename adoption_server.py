@@ -13,11 +13,16 @@ import urllib.error
 import ssl
 import sqlite3
 import threading
+import base64
+import secrets
 from urllib.parse import urlparse, parse_qs
 from datetime import datetime, timedelta
 import os
 
 PORT = 8080
+AUTH_USERNAME = os.environ.get('DASHBOARD_USERNAME', 'Spaces')
+AUTH_PASSWORD = os.environ.get('DASHBOARD_PASSWORD', 'Analytics')
+AUTH_REALM = 'Product Analytics Dashboard'
 PENDO_API_KEY = '7d0eb12c-2c01-406a-9614-39a27227ca72.us'
 PENDO_BASE_URL = 'https://app.pendo.io/api/v1'
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'analytics.db')
@@ -52,20 +57,52 @@ def init_database():
             report_type TEXT,
             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
             user_agent TEXT,
-            ip_address TEXT
+            ip_address TEXT,
+            user_email TEXT
         )
     ''')
     
+    # Add user_email column if it doesn't exist (for existing databases)
+    try:
+        cursor.execute('ALTER TABLE analytics_events ADD COLUMN user_email TEXT')
+    except sqlite3.OperationalError:
+        pass  # Column already exists
+
     # Create indexes for efficient querying
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_event_type ON analytics_events(event_type)')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_timestamp ON analytics_events(timestamp)')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_tenant_id ON analytics_events(tenant_id)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_user_email ON analytics_events(user_email)')
     
     conn.commit()
     conn.close()
     print("📊 Analytics database initialized")
 
 class AdoptionHandler(http.server.SimpleHTTPRequestHandler):
+    def check_auth(self):
+        auth_header = self.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Basic '):
+            self.send_auth_required()
+            return False
+
+        try:
+            decoded = base64.b64decode(auth_header[6:]).decode('utf-8')
+            username, _, password = decoded.partition(':')
+            if secrets.compare_digest(username, AUTH_USERNAME) and secrets.compare_digest(password, AUTH_PASSWORD):
+                return True
+        except (ValueError, UnicodeDecodeError):
+            pass
+
+        self.send_auth_required()
+        return False
+
+    def send_auth_required(self):
+        self.send_response(401)
+        self.send_header('WWW-Authenticate', f'Basic realm="{AUTH_REALM}"')
+        self.send_header('Content-Type', 'text/html')
+        self.end_headers()
+        self.wfile.write(b'<h1>401 Unauthorized</h1><p>Authentication required.</p>')
+
     def end_headers(self):
         # Add cache-control headers to prevent caching of HTML files
         path = getattr(self, 'path', '')
@@ -76,6 +113,9 @@ class AdoptionHandler(http.server.SimpleHTTPRequestHandler):
         super().end_headers()
     
     def do_GET(self):
+        if not self.check_auth():
+            return
+
         parsed = urlparse(self.path)
         path = parsed.path
         
@@ -121,6 +161,9 @@ class AdoptionHandler(http.server.SimpleHTTPRequestHandler):
         return http.server.SimpleHTTPRequestHandler.do_GET(self)
     
     def do_POST(self):
+        if not self.check_auth():
+            return
+
         parsed = urlparse(self.path)
         
         # Analytics tracking endpoint
@@ -143,20 +186,21 @@ class AdoptionHandler(http.server.SimpleHTTPRequestHandler):
             content_length = int(self.headers.get('Content-Length', 0))
             body = self.rfile.read(content_length) if content_length > 0 else b'{}'
             data = json.loads(body.decode('utf-8'))
-            
+
             event_type = data.get('event_type', 'unknown')
             tenant_id = data.get('tenant_id', '')
             duration_days = data.get('duration_days', 0)
             report_type = data.get('report_type', '')
+            user_email = data.get('user_email', '')
             user_agent = self.headers.get('User-Agent', '')
             ip_address = self.client_address[0] if self.client_address else ''
-            
+
             conn = get_db_connection()
             cursor = conn.cursor()
             cursor.execute('''
-                INSERT INTO analytics_events (event_type, tenant_id, duration_days, report_type, user_agent, ip_address)
-                VALUES (?, ?, ?, ?, ?, ?)
-            ''', (event_type, tenant_id, duration_days, report_type, user_agent, ip_address))
+                INSERT INTO analytics_events (event_type, tenant_id, duration_days, report_type, user_agent, ip_address, user_email)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''', (event_type, tenant_id, duration_days, report_type, user_agent, ip_address, user_email))
             conn.commit()
             
             self.send_response(200)
@@ -259,20 +303,21 @@ class AdoptionHandler(http.server.SimpleHTTPRequestHandler):
         try:
             conn = get_db_connection()
             cursor = conn.cursor()
-            
+
             cursor.execute("""
-                SELECT 
+                SELECT
                     id,
                     event_type,
                     tenant_id,
                     duration_days,
                     report_type,
-                    timestamp
+                    timestamp,
+                    user_email
                 FROM analytics_events
                 ORDER BY timestamp DESC
                 LIMIT 50
             """)
-            
+
             results = []
             for row in cursor.fetchall():
                 results.append({
@@ -281,7 +326,8 @@ class AdoptionHandler(http.server.SimpleHTTPRequestHandler):
                     'tenant_id': row['tenant_id'],
                     'duration_days': row['duration_days'],
                     'report_type': row['report_type'],
-                    'timestamp': row['timestamp']
+                    'timestamp': row['timestamp'],
+                    'user_email': row['user_email'] if row['user_email'] else ''
                 })
             
             self.send_response(200)
@@ -352,6 +398,9 @@ class AdoptionHandler(http.server.SimpleHTTPRequestHandler):
             self.wfile.write(json.dumps({'error': str(e)}).encode())
     
     def do_OPTIONS(self):
+        if not self.check_auth():
+            return
+
         self.send_response(200)
         self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')

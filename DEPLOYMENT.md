@@ -124,6 +124,15 @@ Once deployed, access your dashboard at:
 http://ec2-13-221-5-205.compute-1.amazonaws.com:8080
 ```
 
+You will be prompted for login credentials:
+
+| Field | Value |
+|-------|-------|
+| Username | Spaces |
+| Password | Analytics |
+
+To change credentials, update `DASHBOARD_USERNAME` and `DASHBOARD_PASSWORD` in the systemd service file and restart the service.
+
 ---
 
 ## Redeploying After Code Changes

@@ -20,4 +20,8 @@ EMAIL_PASSWORD=your-app-password-here
 # SMTP_SERVER=outbound.cisco.com
 # SMTP_PORT=25
 
+# Dashboard login (used by adoption_server.py)
+DASHBOARD_USERNAME=Spaces
+DASHBOARD_PASSWORD=Analytics
+
 

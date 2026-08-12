@@ -61,6 +61,8 @@ Type=simple
 User=ec2-user
 WorkingDirectory=$APP_DIR
 Environment=PATH=$APP_DIR/venv/bin:/usr/bin
+Environment=DASHBOARD_USERNAME=Spaces
+Environment=DASHBOARD_PASSWORD=Analytics
 ExecStart=$APP_DIR/venv/bin/python3 $APP_DIR/adoption_server.py
 Restart=always
 RestartSec=10

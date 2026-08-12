@@ -1505,9 +1505,203 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+        
+        /* Login Overlay Styles */
+        .login-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(180deg, #000000 0%, #1a1a2e 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        }
+        
+        .login-overlay.hidden {
+            display: none;
+        }
+        
+        .login-container {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 48px;
+            width: 100%;
+            max-width: 420px;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+        }
+        
+        .login-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .login-logo {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+            box-shadow: 0 10px 40px rgba(0, 114, 255, 0.4);
+        }
+        
+        .login-logo svg {
+            width: 48px;
+            height: 48px;
+            fill: white;
+        }
+        
+        .login-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 8px;
+        }
+        
+        .login-subtitle {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .login-field {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .login-field label {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 500;
+        }
+        
+        .login-field input {
+            padding: 14px 16px;
+            font-size: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            background: rgba(0, 0, 0, 0.3);
+            color: #fff;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+        
+        .login-field input:focus {
+            outline: none;
+            border-color: #00c6ff;
+            box-shadow: 0 0 0 3px rgba(0, 198, 255, 0.15);
+        }
+        
+        .login-field input::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+        }
+        
+        .login-btn {
+            padding: 16px 24px;
+            font-size: 15px;
+            font-weight: 600;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%);
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 8px;
+        }
+        
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 114, 255, 0.4);
+        }
+        
+        .login-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .login-error {
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 10px;
+            padding: 12px 16px;
+            color: #ef4444;
+            font-size: 13px;
+            text-align: center;
+            display: none;
+        }
+        
+        .login-error.visible {
+            display: block;
+        }
+        
+        .login-footer {
+            text-align: center;
+            margin-top: 32px;
+            padding-top: 24px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        
+        .login-footer-logo {
+            height: 24px;
+            opacity: 0.5;
+        }
     </style>
 </head>
 <body>
+    <!-- Login Overlay -->
+    <div class="login-overlay" id="loginOverlay">
+        <div class="login-container">
+            <div class="login-header">
+                <div class="login-logo">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                    </svg>
+                </div>
+                <div class="login-title">Indoor Navigation</div>
+                <div class="login-subtitle">Product Analytics Dashboard</div>
+            </div>
+            
+            <form class="login-form" id="loginForm" onsubmit="handleLogin(event)">
+                <div class="login-field">
+                    <label for="loginEmail">Cisco Email</label>
+                    <input type="email" id="loginEmail" name="email" placeholder="your.name@cisco.com" required>
+                </div>
+                <div class="login-field">
+                    <label for="loginUsername">Username</label>
+                    <input type="text" id="loginUsername" name="username" placeholder="Enter username" required>
+                </div>
+                <div class="login-field">
+                    <label for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" name="password" placeholder="Enter password" required>
+                </div>
+                <div class="login-error" id="loginError">Invalid username or password. Please try again.</div>
+                <button type="submit" class="login-btn" id="loginBtn">Sign In</button>
+            </form>
+            
+            <div class="login-footer">
+                <svg class="login-footer-logo" viewBox="0 0 200 40" fill="rgba(255,255,255,0.5)">
+                    <text x="0" y="28" font-family="Inter, sans-serif" font-size="18" font-weight="600">Cisco Spaces</text>
+                </svg>
+            </div>
+        </div>
+    </div>
+
     <div class="loading-overlay" id="loadingOverlay">
         <div class="spinner"></div>
         <div class="loading-text">Fetching data from Pendo...</div>
@@ -2196,12 +2390,91 @@
                         event_type: '[IndoorNav] ' + eventType,
                         tenant_id: data.tenant_id || '',
                         duration_days: data.duration_days || 0,
-                        report_type: data.report_type || ''
+                        report_type: data.report_type || '',
+                        user_email: data.user_email || getLoggedInUser() || ''
                     })
                 });
             } catch (e) {
                 console.log('Analytics tracking error:', e);
             }
+        }
+        
+        // Login credentials
+        const VALID_USERNAME = 'Spaces';
+        const VALID_PASSWORD = 'ProductAnalytics';
+        
+        // Get logged in user email from session storage
+        function getLoggedInUser() {
+            return sessionStorage.getItem('indoorNavUserEmail') || '';
+        }
+        
+        // Check if user is logged in
+        function isLoggedIn() {
+            return sessionStorage.getItem('indoorNavLoggedIn') === 'true';
+        }
+        
+        // Handle login form submission
+        async function handleLogin(event) {
+            event.preventDefault();
+            
+            const email = document.getElementById('loginEmail').value.trim();
+            const username = document.getElementById('loginUsername').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            const loginBtn = document.getElementById('loginBtn');
+            const loginError = document.getElementById('loginError');
+            
+            // Hide previous error
+            loginError.classList.remove('visible');
+            
+            // Validate email format (must be cisco.com)
+            if (!email.toLowerCase().endsWith('@cisco.com')) {
+                loginError.textContent = 'Please use a valid Cisco email address (@cisco.com)';
+                loginError.classList.add('visible');
+                return;
+            }
+            
+            // Validate credentials
+            if (username !== VALID_USERNAME || password !== VALID_PASSWORD) {
+                loginError.textContent = 'Invalid username or password. Please try again.';
+                loginError.classList.add('visible');
+                return;
+            }
+            
+            // Disable button during login
+            loginBtn.disabled = true;
+            loginBtn.textContent = 'Signing in...';
+            
+            try {
+                // Store login state
+                sessionStorage.setItem('indoorNavLoggedIn', 'true');
+                sessionStorage.setItem('indoorNavUserEmail', email);
+                
+                // Track login event
+                await trackEvent('user_login', { user_email: email });
+                
+                // Hide login overlay
+                document.getElementById('loginOverlay').classList.add('hidden');
+                
+                // Track page view after login
+                trackEvent('page_view', { user_email: email });
+                
+            } catch (e) {
+                console.error('Login error:', e);
+                loginError.textContent = 'An error occurred. Please try again.';
+                loginError.classList.add('visible');
+            } finally {
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'Sign In';
+            }
+        }
+        
+        // Check login status on page load
+        function checkLoginStatus() {
+            if (isLoggedIn()) {
+                document.getElementById('loginOverlay').classList.add('hidden');
+                return true;
+            }
+            return false;
         }
         
         // Load Google Charts
@@ -4144,8 +4417,13 @@
         
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
-            // Track page view
-            trackEvent('page_view', {});
+            // Check if user is logged in
+            const alreadyLoggedIn = checkLoginStatus();
+            
+            // Only track page view if already logged in (new logins track it in handleLogin)
+            if (alreadyLoggedIn) {
+                trackEvent('page_view', {});
+            }
             
             const { tenantId, duration } = parseUrlParams();
             

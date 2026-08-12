@@ -247,10 +247,30 @@
             color: #5ac8fa;
         }
         
+        .event-badge.login {
+            background: rgba(147, 51, 234, 0.15);
+            color: #a855f7;
+        }
+        
+        .event-badge.page-view {
+            background: rgba(59, 130, 246, 0.15);
+            color: #3b82f6;
+        }
+        
+        .event-badge.other {
+            background: rgba(156, 163, 175, 0.15);
+            color: #9ca3af;
+        }
+        
         .tenant-id {
             font-family: 'SF Mono', Monaco, monospace;
             font-size: 13px;
             color: #ffffff;
+        }
+        
+        .user-email {
+            font-size: 12px;
+            color: #a78bfa;
         }
         
         .duration-badge {
@@ -437,6 +457,7 @@
                 <tr>
                     <th>Event ID</th>
                     <th>Timestamp</th>
+                    <th>User Email</th>
                     <th>Tenant ID</th>
                     <th>Event Type</th>
                     <th>Duration</th>
@@ -445,7 +466,7 @@
             </thead>
             <tbody id="auditTableBody">
                 <tr>
-                    <td colspan="6" class="empty-state">
+                    <td colspan="7" class="empty-state">
                         <div class="empty-state-icon">📊</div>
                         <div>No activity recorded yet</div>
                     </td>
@@ -619,7 +640,7 @@
                 if (data.length === 0) {
                     tbody.innerHTML = `
                         <tr>
-                            <td colspan="6" class="empty-state">
+                            <td colspan="7" class="empty-state">
                                 <div class="empty-state-icon">📊</div>
                                 <div>No activity recorded yet</div>
                             </td>
@@ -629,13 +650,29 @@
                 }
                 
                 tbody.innerHTML = data.map(event => {
-                    const eventTypeClass = event.event_type === 'load_data' ? 'load-data' : 'download';
-                    const eventTypeLabel = event.event_type === 'load_data' ? 'LOAD DATA' : 'DOWNLOAD';
+                    const eventType = event.event_type || '';
+                    let eventTypeClass = 'other';
+                    let eventTypeLabel = eventType;
+                    
+                    if (eventType.includes('user_login')) {
+                        eventTypeClass = 'login';
+                        eventTypeLabel = 'LOGIN';
+                    } else if (eventType.includes('page_view')) {
+                        eventTypeClass = 'page-view';
+                        eventTypeLabel = 'PAGE VIEW';
+                    } else if (eventType.includes('report_generated') || eventType.includes('load_data')) {
+                        eventTypeClass = 'load-data';
+                        eventTypeLabel = 'LOAD DATA';
+                    } else if (eventType.includes('report_downloaded') || eventType.includes('download')) {
+                        eventTypeClass = 'download';
+                        eventTypeLabel = 'DOWNLOAD';
+                    }
                     
                     return `
                         <tr>
                             <td>#${event.id}</td>
                             <td>${formatDateTime(event.timestamp)}</td>
+                            <td><span class="user-email">${event.user_email || '-'}</span></td>
                             <td><span class="tenant-id">${event.tenant_id || '-'}</span></td>
                             <td><span class="event-badge ${eventTypeClass}">${eventTypeLabel}</span></td>
                             <td>${event.duration_days ? `<span class="duration-badge">${event.duration_days} days</span>` : '-'}</td>
