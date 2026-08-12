@@ -116,14 +116,11 @@ class AdoptionHandler(http.server.SimpleHTTPRequestHandler):
         parsed = urlparse(self.path)
         path = parsed.path
         
-        # Indoor Navigation Report - has its own login page, skip Basic Auth
+        # All main pages have their own login page - no Basic Auth required
+        # Indoor Navigation Report
         if path == '/indoor-nav-report' or path == '/indoor-navigation-report':
             self.path = '/indoor_nav_report.html'
             return http.server.SimpleHTTPRequestHandler.do_GET(self)
-        
-        # All other paths require Basic Auth
-        if not self.check_auth():
-            return
         
         # Serve main page - root path
         if path == '/' or path == '/index.html':
@@ -131,7 +128,6 @@ class AdoptionHandler(http.server.SimpleHTTPRequestHandler):
             return http.server.SimpleHTTPRequestHandler.do_GET(self)
         
         # Handle URL pattern: /tenantID=xxx/duration=xxxd
-        # Also handle variations like /tenantID=xxx or just path with parameters
         if path.startswith('/tenantID=') or (path.count('/') >= 1 and 'tenantID=' in path):
             self.path = '/adoption_tracker.html'
             return http.server.SimpleHTTPRequestHandler.do_GET(self)
@@ -140,6 +136,10 @@ class AdoptionHandler(http.server.SimpleHTTPRequestHandler):
         if path == '/analytics':
             self.path = '/analytics.html'
             return http.server.SimpleHTTPRequestHandler.do_GET(self)
+        
+        # API endpoints - no auth required (pages handle their own auth)
+        if path.startswith('/api/'):
+            pass  # Continue to handle API endpoints below
         
         # Analytics API endpoints
         if path == '/api/analytics/stats':
@@ -164,11 +164,8 @@ class AdoptionHandler(http.server.SimpleHTTPRequestHandler):
     def do_POST(self):
         parsed = urlparse(self.path)
         
-        # API endpoints used by indoor-nav-report (which has its own login) - skip Basic Auth
-        if parsed.path == '/api/analytics/track' or parsed.path.startswith('/api/pendo/'):
-            pass  # Allow without Basic Auth
-        elif not self.check_auth():
-            return
+        # All API endpoints - pages handle their own authentication via login page
+        # No Basic Auth required for API calls
         
         # Analytics tracking endpoint
         if parsed.path == '/api/analytics/track':

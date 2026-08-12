@@ -2403,14 +2403,14 @@
         const VALID_USERNAME = 'Spaces';
         const VALID_PASSWORD = 'ProductAnalytics';
         
-        // Get logged in user email from session storage
+        // Get logged in user email from session storage (shared across all pages)
         function getLoggedInUser() {
-            return sessionStorage.getItem('indoorNavUserEmail') || '';
+            return sessionStorage.getItem('spacesUserEmail') || '';
         }
         
-        // Check if user is logged in
+        // Check if user is logged in (shared across all pages)
         function isLoggedIn() {
-            return sessionStorage.getItem('indoorNavLoggedIn') === 'true';
+            return sessionStorage.getItem('spacesLoggedIn') === 'true';
         }
         
         // Handle login form submission
@@ -2445,9 +2445,9 @@
             loginBtn.textContent = 'Signing in...';
             
             try {
-                // Store login state
-                sessionStorage.setItem('indoorNavLoggedIn', 'true');
-                sessionStorage.setItem('indoorNavUserEmail', email);
+                // Store login state (shared across all pages)
+                sessionStorage.setItem('spacesLoggedIn', 'true');
+                sessionStorage.setItem('spacesUserEmail', email);
                 
                 // Track login event
                 await trackEvent('user_login', { user_email: email });

@@ -339,9 +339,50 @@
                 grid-template-columns: 1fr;
             }
         }
+        
+        /* Login Overlay */
+        .login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0d0d0d; display: flex; justify-content: center; align-items: center; z-index: 10000; }
+        .login-overlay.hidden { display: none; }
+        .login-container { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; padding: 48px; width: 100%; max-width: 420px; }
+        .login-header { text-align: center; margin-bottom: 40px; }
+        .login-logo { width: 80px; height: 80px; background: linear-gradient(135deg, #00d4aa 0%, #00a896 100%); border-radius: 20px; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; }
+        .login-logo svg { width: 48px; height: 48px; fill: white; }
+        .login-title { font-size: 28px; font-weight: 700; color: #ffffff; margin-bottom: 8px; }
+        .login-subtitle { font-size: 14px; color: rgba(255,255,255,0.5); }
+        .login-form { display: flex; flex-direction: column; gap: 20px; }
+        .login-field { display: flex; flex-direction: column; gap: 8px; }
+        .login-field label { font-size: 12px; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 1px; }
+        .login-field input { padding: 14px 16px; font-size: 15px; border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; background: rgba(0,0,0,0.3); color: #fff; font-family: inherit; }
+        .login-field input:focus { outline: none; border-color: #00d4aa; }
+        .login-field input::placeholder { color: rgba(255,255,255,0.3); }
+        .login-btn { padding: 16px 24px; font-size: 15px; font-weight: 600; border: none; border-radius: 12px; background: linear-gradient(135deg, #00d4aa 0%, #00a896 100%); color: #0d0d0d; cursor: pointer; margin-top: 8px; }
+        .login-btn:hover { transform: translateY(-2px); }
+        .login-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        .login-error { background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); border-radius: 10px; padding: 12px 16px; color: #ef4444; font-size: 13px; text-align: center; display: none; }
+        .login-error.visible { display: block; }
+        .login-footer { text-align: center; margin-top: 32px; padding-top: 24px; border-top: 1px solid rgba(255,255,255,0.08); color: rgba(255,255,255,0.5); }
     </style>
 </head>
 <body>
+    <!-- Login Overlay -->
+    <div class="login-overlay" id="loginOverlay">
+        <div class="login-container">
+            <div class="login-header">
+                <div class="login-logo"><svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg></div>
+                <div class="login-title">Usage Analytics</div>
+                <div class="login-subtitle">Cisco Spaces Dashboard</div>
+            </div>
+            <form class="login-form" id="loginForm" onsubmit="handleLogin(event)">
+                <div class="login-field"><label>Cisco Email</label><input type="email" id="loginEmail" placeholder="your.name@cisco.com" required></div>
+                <div class="login-field"><label>Username</label><input type="text" id="loginUsername" placeholder="Enter username" required></div>
+                <div class="login-field"><label>Password</label><input type="password" id="loginPassword" placeholder="Enter password" required></div>
+                <div class="login-error" id="loginError">Invalid username or password.</div>
+                <button type="submit" class="login-btn" id="loginBtn">Sign In</button>
+            </form>
+            <div class="login-footer">Cisco Spaces</div>
+        </div>
+    </div>
+    
     <a href="/" class="back-link">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M19 12H5M12 19l-7-7 7-7"/>
@@ -485,6 +526,59 @@
     </button>
     
     <script>
+        // Login credentials (shared across all pages)
+        const VALID_USERNAME = 'Spaces';
+        const VALID_PASSWORD = 'ProductAnalytics';
+        
+        function getLoggedInUser() { return sessionStorage.getItem('spacesUserEmail') || ''; }
+        function isLoggedIn() { return sessionStorage.getItem('spacesLoggedIn') === 'true'; }
+        
+        async function handleLogin(event) {
+            event.preventDefault();
+            const email = document.getElementById('loginEmail').value.trim();
+            const username = document.getElementById('loginUsername').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            const loginError = document.getElementById('loginError');
+            const loginBtn = document.getElementById('loginBtn');
+            
+            loginError.classList.remove('visible');
+            
+            if (!email.toLowerCase().endsWith('@cisco.com')) {
+                loginError.textContent = 'Please use a valid Cisco email address (@cisco.com)';
+                loginError.classList.add('visible');
+                return;
+            }
+            
+            if (username !== VALID_USERNAME || password !== VALID_PASSWORD) {
+                loginError.textContent = 'Invalid username or password.';
+                loginError.classList.add('visible');
+                return;
+            }
+            
+            loginBtn.disabled = true;
+            loginBtn.textContent = 'Signing in...';
+            
+            sessionStorage.setItem('spacesLoggedIn', 'true');
+            sessionStorage.setItem('spacesUserEmail', email);
+            document.getElementById('loginOverlay').classList.add('hidden');
+            
+            loginBtn.disabled = false;
+            loginBtn.textContent = 'Sign In';
+        }
+        
+        function checkLoginStatus() {
+            if (isLoggedIn()) {
+                document.getElementById('loginOverlay').classList.add('hidden');
+                return true;
+            }
+            return false;
+        }
+        
+        // Check login on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            checkLoginStatus();
+        });
+        
         let trendsChart = null;
         
         function formatTime(date) {

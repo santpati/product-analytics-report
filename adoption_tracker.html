@@ -378,9 +378,127 @@
             .stats-row, .second-row, .nav-detail-row { grid-template-columns: 1fr; }
             .controls { flex-direction: column; align-items: center; }
         }
+        
+        /* Login Overlay Styles */
+        .login-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        }
+        
+        .login-overlay.hidden { display: none; }
+        
+        .login-container {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 48px;
+            width: 100%;
+            max-width: 420px;
+            backdrop-filter: blur(20px);
+        }
+        
+        .login-header { text-align: center; margin-bottom: 40px; }
+        
+        .login-logo {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #00d9ff 0%, #00ff88 100%);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+        }
+        
+        .login-logo svg { width: 48px; height: 48px; fill: white; }
+        .login-title { font-size: 28px; font-weight: 700; color: #ffffff; margin-bottom: 8px; }
+        .login-subtitle { font-size: 14px; color: rgba(255, 255, 255, 0.5); }
+        .login-form { display: flex; flex-direction: column; gap: 20px; }
+        .login-field { display: flex; flex-direction: column; gap: 8px; }
+        .login-field label { font-size: 12px; color: rgba(255, 255, 255, 0.6); text-transform: uppercase; letter-spacing: 1px; }
+        
+        .login-field input {
+            padding: 14px 16px;
+            font-size: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            background: rgba(0, 0, 0, 0.3);
+            color: #fff;
+            font-family: inherit;
+        }
+        
+        .login-field input:focus { outline: none; border-color: #00d9ff; }
+        .login-field input::placeholder { color: rgba(255, 255, 255, 0.3); }
+        
+        .login-btn {
+            padding: 16px 24px;
+            font-size: 15px;
+            font-weight: 600;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #00d9ff 0%, #00ff88 100%);
+            color: #1a1a2e;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+        
+        .login-btn:hover { transform: translateY(-2px); }
+        .login-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        
+        .login-error {
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 10px;
+            padding: 12px 16px;
+            color: #ef4444;
+            font-size: 13px;
+            text-align: center;
+            display: none;
+        }
+        
+        .login-error.visible { display: block; }
+        .login-footer { text-align: center; margin-top: 32px; padding-top: 24px; border-top: 1px solid rgba(255, 255, 255, 0.08); color: rgba(255, 255, 255, 0.5); }
     </style>
 </head>
 <body>
+    <!-- Login Overlay -->
+    <div class="login-overlay" id="loginOverlay">
+        <div class="login-container">
+            <div class="login-header">
+                <div class="login-logo">
+                    <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+                </div>
+                <div class="login-title">Adoption Tracker</div>
+                <div class="login-subtitle">Cisco Spaces Analytics Dashboard</div>
+            </div>
+            <form class="login-form" id="loginForm" onsubmit="handleLogin(event)">
+                <div class="login-field">
+                    <label for="loginEmail">Cisco Email</label>
+                    <input type="email" id="loginEmail" placeholder="your.name@cisco.com" required>
+                </div>
+                <div class="login-field">
+                    <label for="loginUsername">Username</label>
+                    <input type="text" id="loginUsername" placeholder="Enter username" required>
+                </div>
+                <div class="login-field">
+                    <label for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" placeholder="Enter password" required>
+                </div>
+                <div class="login-error" id="loginError">Invalid username or password.</div>
+                <button type="submit" class="login-btn" id="loginBtn">Sign In</button>
+            </form>
+            <div class="login-footer">Cisco Spaces</div>
+        </div>
+    </div>
+
     <div class="loading-overlay" id="loadingOverlay">
         <div class="spinner"></div>
         <div class="loading-text">Fetching data from Pendo...</div>
@@ -475,6 +593,70 @@
     </div>
 
     <script>
+        // Login credentials
+        const VALID_USERNAME = 'Spaces';
+        const VALID_PASSWORD = 'ProductAnalytics';
+        
+        // Get logged in user email from session storage
+        function getLoggedInUser() {
+            return sessionStorage.getItem('spacesUserEmail') || '';
+        }
+        
+        // Check if user is logged in
+        function isLoggedIn() {
+            return sessionStorage.getItem('spacesLoggedIn') === 'true';
+        }
+        
+        // Handle login form submission
+        async function handleLogin(event) {
+            event.preventDefault();
+            
+            const email = document.getElementById('loginEmail').value.trim();
+            const username = document.getElementById('loginUsername').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            const loginBtn = document.getElementById('loginBtn');
+            const loginError = document.getElementById('loginError');
+            
+            loginError.classList.remove('visible');
+            
+            if (!email.toLowerCase().endsWith('@cisco.com')) {
+                loginError.textContent = 'Please use a valid Cisco email address (@cisco.com)';
+                loginError.classList.add('visible');
+                return;
+            }
+            
+            if (username !== VALID_USERNAME || password !== VALID_PASSWORD) {
+                loginError.textContent = 'Invalid username or password. Please try again.';
+                loginError.classList.add('visible');
+                return;
+            }
+            
+            loginBtn.disabled = true;
+            loginBtn.textContent = 'Signing in...';
+            
+            try {
+                sessionStorage.setItem('spacesLoggedIn', 'true');
+                sessionStorage.setItem('spacesUserEmail', email);
+                await trackEvent('user_login', { user_email: email });
+                document.getElementById('loginOverlay').classList.add('hidden');
+                trackEvent('page_view', { user_email: email });
+            } catch (e) {
+                console.error('Login error:', e);
+            } finally {
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'Sign In';
+            }
+        }
+        
+        // Check login status on page load
+        function checkLoginStatus() {
+            if (isLoggedIn()) {
+                document.getElementById('loginOverlay').classList.add('hidden');
+                return true;
+            }
+            return false;
+        }
+        
         // Analytics tracking function
         async function trackEvent(eventType, data = {}) {
             try {
@@ -485,7 +667,8 @@
                         event_type: eventType,
                         tenant_id: data.tenant_id || '',
                         duration_days: data.duration_days || 0,
-                        report_type: data.report_type || ''
+                        report_type: data.report_type || '',
+                        user_email: data.user_email || getLoggedInUser() || ''
                     })
                 });
             } catch (error) {
@@ -1396,8 +1579,13 @@
         
         // Auto-load data on page load based on URL parameters
         document.addEventListener('DOMContentLoaded', function() {
-            // Track page view
-            trackEvent('page_view', {});
+            // Check if user is logged in
+            const alreadyLoggedIn = checkLoginStatus();
+            
+            // Only track page view if already logged in (new logins track it in handleLogin)
+            if (alreadyLoggedIn) {
+                trackEvent('page_view', {});
+            }
             
             // Parse URL parameters
             const { tenantId, duration } = parseUrlParams();
