@@ -113,11 +113,17 @@ class AdoptionHandler(http.server.SimpleHTTPRequestHandler):
         super().end_headers()
     
     def do_GET(self):
-        if not self.check_auth():
-            return
-
         parsed = urlparse(self.path)
         path = parsed.path
+        
+        # Indoor Navigation Report - has its own login page, skip Basic Auth
+        if path == '/indoor-nav-report' or path == '/indoor-navigation-report':
+            self.path = '/indoor_nav_report.html'
+            return http.server.SimpleHTTPRequestHandler.do_GET(self)
+        
+        # All other paths require Basic Auth
+        if not self.check_auth():
+            return
         
         # Serve main page - root path
         if path == '/' or path == '/index.html':
@@ -133,11 +139,6 @@ class AdoptionHandler(http.server.SimpleHTTPRequestHandler):
         # Serve analytics dashboard
         if path == '/analytics':
             self.path = '/analytics.html'
-            return http.server.SimpleHTTPRequestHandler.do_GET(self)
-        
-        # Serve Indoor Navigation Report
-        if path == '/indoor-nav-report' or path == '/indoor-navigation-report':
-            self.path = '/indoor_nav_report.html'
             return http.server.SimpleHTTPRequestHandler.do_GET(self)
         
         # Analytics API endpoints
@@ -161,10 +162,13 @@ class AdoptionHandler(http.server.SimpleHTTPRequestHandler):
         return http.server.SimpleHTTPRequestHandler.do_GET(self)
     
     def do_POST(self):
-        if not self.check_auth():
-            return
-
         parsed = urlparse(self.path)
+        
+        # API endpoints used by indoor-nav-report (which has its own login) - skip Basic Auth
+        if parsed.path == '/api/analytics/track' or parsed.path.startswith('/api/pendo/'):
+            pass  # Allow without Basic Auth
+        elif not self.check_auth():
+            return
         
         # Analytics tracking endpoint
         if parsed.path == '/api/analytics/track':
