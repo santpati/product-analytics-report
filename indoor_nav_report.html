@@ -4,10 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Indoor Navigation Report</title>
+    <!-- Preconnect and preload for faster loading -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/chart.js" as="script">
+    <!-- Non-blocking font loading -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <!-- Scripts - loaded after CSS -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
-    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/charts/loader.js"></script>
     <style>
         * {
             margin: 0;
@@ -27,6 +34,35 @@
             max-width: 1400px;
             margin: 0 auto;
         }
+        
+        /* Reports Counter - Top Right */
+        .reports-counter {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10001;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 50px;
+            padding: 10px 18px;
+        }
+        .reports-counter-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+        .reports-counter-content { display: flex; flex-direction: column; }
+        .reports-counter-value { font-size: 20px; font-weight: 700; color: #00c6ff; line-height: 1; }
+        .reports-counter-label { font-size: 10px; color: rgba(255, 255, 255, 0.5); text-transform: uppercase; letter-spacing: 0.5px; }
         
         /* Header Section */
         .header {
@@ -1664,6 +1700,15 @@
     </style>
 </head>
 <body>
+    <!-- Reports Counter -->
+    <div class="reports-counter" id="reportsCounter">
+        <div class="reports-counter-icon">📊</div>
+        <div class="reports-counter-content">
+            <div class="reports-counter-value" id="reportsCountValue">--</div>
+            <div class="reports-counter-label">Reports Generated</div>
+        </div>
+    </div>
+
     <!-- Login Overlay -->
     <div class="login-overlay" id="loginOverlay">
         <div class="login-container">
@@ -2380,23 +2425,19 @@
         const qrTrendsChartRef = { current: null };
         const visitorTrendsChartRef = { current: null };
         
-        // Analytics tracking function
-        async function trackEvent(eventType, data = {}) {
-            try {
-                await fetch('/api/analytics/track', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        event_type: '[IndoorNav] ' + eventType,
-                        tenant_id: data.tenant_id || '',
-                        duration_days: data.duration_days || 0,
-                        report_type: data.report_type || '',
-                        user_email: data.user_email || getLoggedInUser() || ''
-                    })
-                });
-            } catch (e) {
-                console.log('Analytics tracking error:', e);
-            }
+        // Analytics tracking function - non-blocking (fire and forget)
+        function trackEvent(eventType, data = {}) {
+            fetch('/api/analytics/track', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    event_type: '[IndoorNav] ' + eventType,
+                    tenant_id: data.tenant_id || '',
+                    duration_days: data.duration_days || 0,
+                    report_type: data.report_type || '',
+                    user_email: data.user_email || getLoggedInUser() || ''
+                })
+            }).catch(e => console.log('Analytics tracking error:', e));
         }
         
         // Login credentials
@@ -2449,8 +2490,8 @@
                 sessionStorage.setItem('spacesLoggedIn', 'true');
                 sessionStorage.setItem('spacesUserEmail', email);
                 
-                // Track login event
-                await trackEvent('user_login', { user_email: email });
+                // Track login event (non-blocking)
+                trackEvent('user_login', { user_email: email });
                 
                 // Hide login overlay
                 document.getElementById('loginOverlay').classList.add('hidden');
@@ -4415,8 +4456,26 @@
             showLoading(false);
         }
         
+        // Fetch and display reports count
+        function fetchReportsCount() {
+            fetch('/api/analytics/audit')
+                .then(res => res.json())
+                .then(data => {
+                    const reportsCount = (data.events || []).filter(e => 
+                        e.event_type && e.event_type.includes('report_generated')
+                    ).length;
+                    document.getElementById('reportsCountValue').textContent = reportsCount.toLocaleString();
+                })
+                .catch(e => {
+                    document.getElementById('reportsCountValue').textContent = '0';
+                });
+        }
+
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
+            // Fetch reports count immediately
+            fetchReportsCount();
+            
             // Check if user is logged in
             const alreadyLoggedIn = checkLoginStatus();
             

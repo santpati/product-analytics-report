@@ -137,6 +137,11 @@ class AdoptionHandler(http.server.SimpleHTTPRequestHandler):
             self.path = '/analytics.html'
             return http.server.SimpleHTTPRequestHandler.do_GET(self)
         
+        # Space Explorer Report
+        if path == '/space-explorer':
+            self.path = '/space_explorer_report.html'
+            return http.server.SimpleHTTPRequestHandler.do_GET(self)
+        
         # API endpoints - no auth required (pages handle their own auth)
         if path.startswith('/api/'):
             pass  # Continue to handle API endpoints below
