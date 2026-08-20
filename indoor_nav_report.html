@@ -1806,9 +1806,9 @@
                 <div class="control-group custom-date-group" id="customDateGroup" style="display: none;">
                     <label>Date Range</label>
                     <div class="date-range-inputs">
-                        <input type="date" id="customStartDate" onchange="handleCustomDateChange()" />
+                        <input type="date" id="customStartDate" onchange="handleCustomDateChange()" oninput="handleCustomDateChange()" />
                         <span class="date-separator">to</span>
-                        <input type="date" id="customEndDate" onchange="handleCustomDateChange()" />
+                        <input type="date" id="customEndDate" onchange="handleCustomDateChange()" oninput="handleCustomDateChange()" />
                     </div>
                 </div>
                 <button class="load-btn" id="getDataBtn" onclick="getData()">
@@ -2558,6 +2558,8 @@
         let lastLoadedRangeKey = null;
         let loadDataGeneration = 0;
         let loadedDailyPointCount = 0;
+        let suppressCustomDateEvent = false;
+        let durationChangeToken = 0;
         
         function normalizeDayKey(dayMs) {
             const d = new Date(dayMs);
@@ -2675,7 +2677,7 @@
         
         function isReportDataStale() {
             if (!lastLoadedRangeKey) return false;
-            const current = getSelectedDateRange();
+            const current = getSelectedDateRange({ silent: true });
             return !current || getRangeKey(current) !== lastLoadedRangeKey;
         }
         
@@ -2707,6 +2709,7 @@
         }
         
         function handleCustomDateChange() {
+            if (suppressCustomDateEvent) return;
             if (document.getElementById('durationSelect').value !== 'custom') return;
             
             updateCustomDateBounds();
@@ -2714,32 +2717,46 @@
             const startInput = document.getElementById('customStartDate');
             const endInput = document.getElementById('customEndDate');
             if (startInput.value && endInput.value && startInput.value > endInput.value) {
+                suppressCustomDateEvent = true;
                 endInput.value = startInput.value;
+                suppressCustomDateEvent = false;
             }
             
             applyDurationChange(false);
         }
         
-        function applyDurationChange(resetCustomDefaults = false) {
+        async function applyDurationChange(resetCustomDefaults = false) {
             toggleCustomDateRange(resetCustomDefaults);
             
-            const dateRange = getSelectedDateRange();
-            if (dateRange) {
-                document.getElementById('dateRangeDisplay').textContent = dateRange.displayText;
-            }
+            const dateRange = getSelectedDateRange({ silent: !resetCustomDefaults });
+            if (!dateRange) return;
+            
+            document.getElementById('dateRangeDisplay').textContent = dateRange.displayText;
             
             const hadLoadedData = !!lastLoadedRangeKey;
+            const step2 = document.getElementById('step2Controls');
+            const tenantId = document.getElementById('tenantInput').value.trim();
+            const step2Visible = step2.style.display !== 'none';
+            const token = ++durationChangeToken;
+            
             loadDataGeneration++;
             clearStaleReportData();
             
-            const step2 = document.getElementById('step2Controls');
-            const tenantId = document.getElementById('tenantInput').value.trim();
-            const canReload = step2.style.display !== 'none' && tenantId && getSelectedSites().length > 0;
+            if (!tenantId) return;
             
-            if (hadLoadedData && canReload) {
-                loadData();
-            } else if (tenantId && step2.style.display === 'none') {
-                getData();
+            try {
+                if (step2Visible) {
+                    // Sites can differ by date range — refresh the picker, then reload metrics.
+                    await getData({ silentRange: true });
+                    if (token !== durationChangeToken) return;
+                    if (hadLoadedData && getSelectedSites().length > 0) {
+                        await loadData();
+                    }
+                } else {
+                    await getData({ silentRange: true });
+                }
+            } catch (error) {
+                console.error('Duration change refresh failed:', error);
             }
         }
         
@@ -2897,7 +2914,8 @@
             }
         }
         
-        function getSelectedDateRange() {
+        function getSelectedDateRange(options = {}) {
+            const silent = !!options.silent;
             const durationSelect = document.getElementById('durationSelect');
             
             if (durationSelect.value === 'custom') {
@@ -2905,12 +2923,12 @@
                 const endDateStr = document.getElementById('customEndDate').value;
                 
                 if (!startDateStr || !endDateStr) {
-                    alert('Please select both start and end dates');
+                    if (!silent) alert('Please select both start and end dates');
                     return null;
                 }
                 
-                if (new Date(startDateStr) > new Date(endDateStr)) {
-                    alert('Start date must be before end date');
+                if (startDateStr > endDateStr) {
+                    if (!silent) alert('Start date must be before end date');
                     return null;
                 }
                 
@@ -3021,7 +3039,7 @@
             return `accountId == "${accountId}" && (${siteConditions})`;
         }
         
-        async function getData() {
+        async function getData(options = {}) {
             const tenantId = document.getElementById('tenantInput').value.trim();
             
             if (!tenantId) {
@@ -3029,7 +3047,7 @@
                 return;
             }
             
-            const dateRange = getSelectedDateRange();
+            const dateRange = getSelectedDateRange({ silent: !!options.silentRange });
             if (!dateRange) return;
             
             showLoading(true, 'Fetching available sites...');
@@ -3072,8 +3090,11 @@
                 return;
             }
             
-            const dateRange = getSelectedDateRange();
-            if (!dateRange) return;
+            const dateRange = getSelectedDateRange({ silent: true });
+            if (!dateRange) {
+                alert('Please select a valid date range');
+                return;
+            }
             
             const generation = ++loadDataGeneration;
             
@@ -3096,6 +3117,7 @@
             document.getElementById('accountDisplay').textContent = accountId;
             document.getElementById('dateRangeDisplay').textContent = dateRange.displayText;
             
+            let completed = false;
             try {
                 const filterExpr = buildSiteFilter(accountId, selectedSites);
                 
@@ -3320,16 +3342,20 @@
                     funnelSection.classList.remove('active');
                 }
                 
+                if (isStale()) return;
+                completed = true;
+                
             } catch (error) {
                 console.error('Error loading data:', error);
                 alert('Error loading data. Check console for details.');
+            } finally {
+                showLoading(false);
             }
             
-            showLoading(false);
-            
-            // Show download button after data is loaded
-            document.getElementById('downloadBtn').style.display = 'flex';
-            lastLoadedRangeKey = getRangeKey(dateRange);
+            if (completed) {
+                document.getElementById('downloadBtn').style.display = 'flex';
+                lastLoadedRangeKey = getRangeKey(dateRange);
+            }
         }
         
         function setTrendsView(view) {
