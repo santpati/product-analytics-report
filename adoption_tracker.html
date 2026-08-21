@@ -423,6 +423,16 @@
             color: rgba(255, 255, 255, 0.5);
             line-height: 1.5;
         }
+
+        .feature-desc a {
+            color: #00bceb;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .feature-desc a:hover {
+            text-decoration: underline;
+        }
         
         /* Footer */
         .footer {
@@ -537,10 +547,6 @@
                     <p class="tile-description">
                         Get customer-specific product analytics for Space Explorer WebApp including desk bookings, room holds, user interactions, and workspace utilization data.
                     </p>
-                    <div class="tile-cta">
-                        View Analytics
-                        <svg viewBox="0 0 24 24"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/></svg>
-                    </div>
                 </a>
             </div>
         </section>
@@ -570,6 +576,11 @@
                     <div class="feature-icon">📥</div>
                     <div class="feature-title">Export Reports</div>
                     <div class="feature-desc">Download professional HTML reports to share with stakeholders and customers</div>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">📈</div>
+                    <div class="feature-title">Usage Analytics</div>
+                    <div class="feature-desc">See how many reports have been generated with this dashboard so far — <a href="/analytics">check analytics here</a></div>
                 </div>
             </div>
         </div>
@@ -658,13 +669,10 @@
 
         // Fetch and display reports count
         function fetchReportsCount() {
-            fetch('/api/analytics/audit')
+            fetch('/api/analytics/stats')
                 .then(res => res.json())
                 .then(data => {
-                    // Count report_generated events
-                    const reportsCount = (data.events || []).filter(e => 
-                        e.event_type && e.event_type.includes('report_generated')
-                    ).length;
+                    const reportsCount = data.reports_generated || 0;
                     document.getElementById('reportsCountValue').textContent = reportsCount.toLocaleString();
                 })
                 .catch(e => {

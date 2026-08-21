@@ -1915,6 +1915,18 @@
         }
         
         // Export Modal Functions
+        async function syncExportTrendViews(view) {
+            const updates = [];
+            if (view !== currentTotalTrendsView) updates.push(setTotalTrendsView(view));
+            if (view !== currentTrendsView) updates.push(setTrendsView(view));
+            if (view !== currentMobileTrendsView) updates.push(setMobileTrendsView(view));
+            if (view !== currentVisitorTrendsView) updates.push(setVisitorTrendsView(view));
+            if (updates.length) {
+                await Promise.all(updates);
+                await new Promise(resolve => setTimeout(resolve, 300));
+            }
+        }
+
         function showExportModal() {
             const tenantId = document.getElementById('tenantInput').value.trim();
             const selectedSites = getSelectedSites();
@@ -1958,21 +1970,19 @@
             closeExportModal();
             showLoading(true, 'Generating PDF...');
             await ReportLoaders.ensureHtml2Pdf();
+            await syncExportTrendViews(settings.trendsView);
             
-            // Update trends view if needed
-            if (settings.trendsView !== currentTrendsView) {
-                setTrendsView(settings.trendsView);
-                await new Promise(resolve => setTimeout(resolve, 500));
-            }
-            
-            // Capture charts
+            const totalTrendsChartImg = document.getElementById('totalTrendsChart')?.toDataURL('image/png', 1.0) || '';
             const trendsChartImg = document.getElementById('qrTrendsChart')?.toDataURL('image/png', 1.0) || '';
+            const mobileTrendsChartImg = document.getElementById('mobileTrendsChart')?.toDataURL('image/png', 1.0) || '';
             const platformChartImg = document.getElementById('platformChart')?.toDataURL('image/png', 1.0) || '';
+            const sdkPlatformChartImg = document.getElementById('sdkPlatformChart')?.toDataURL('image/png', 1.0) || '';
             const poiChartImg = document.getElementById('poiChart')?.toDataURL('image/png', 1.0) || '';
             const quickAccessChartImg = document.getElementById('quickAccessChart')?.toDataURL('image/png', 1.0) || '';
             
-            // Get metrics
+            const totalSdkSessions = document.getElementById('totalSdkSessions').textContent;
             const totalQRScans = document.getElementById('totalQRScans').textContent;
+            const totalMobileSessions = document.getElementById('totalMobileSessions').textContent;
             const uniqueVisitors = document.getElementById('uniqueVisitors').textContent;
             const iosCount = document.getElementById('iosCount').textContent;
             const androidCount = document.getElementById('androidCount').textContent;
@@ -1980,6 +1990,12 @@
             const iosPercent = document.getElementById('iosPercent').textContent;
             const androidPercent = document.getElementById('androidPercent').textContent;
             const webPercent = document.getElementById('webPercent').textContent;
+            const sdkIosCount = document.getElementById('sdkIosCount').textContent;
+            const sdkAndroidCount = document.getElementById('sdkAndroidCount').textContent;
+            const sdkWebCount = document.getElementById('sdkWebCount').textContent;
+            const sdkIosPercent = document.getElementById('sdkIosPercent').textContent;
+            const sdkAndroidPercent = document.getElementById('sdkAndroidPercent').textContent;
+            const sdkWebPercent = document.getElementById('sdkWebPercent').textContent;
             const totalPOI = document.getElementById('totalPOI').textContent;
             const totalQuickAccess = document.getElementById('totalQuickAccess').textContent;
             const totalSearches = document.getElementById('totalSearches').textContent;
@@ -1989,7 +2005,6 @@
             const navCompletedPercent = document.getElementById('navCompletedPercent')?.textContent || '';
             const navCanceledPercent = document.getElementById('navCanceledPercent')?.textContent || '';
             
-            // Build clean PDF HTML
             const pdfDiv = document.createElement('div');
             pdfDiv.innerHTML = `
                 <div style="font-family:Arial,sans-serif;padding:30px;color:#1a1a2e;width:750px;">
@@ -2001,20 +2016,34 @@
                         <div style="flex:1;text-align:center;border-left:1px solid #ddd;border-right:1px solid #ddd;"><div style="font-size:10px;color:#666;text-transform:uppercase;">Duration</div><div style="font-size:14px;font-weight:600;">${settings.dateRange}</div></div>
                         <div style="flex:1;text-align:center;"><div style="font-size:10px;color:#666;text-transform:uppercase;">Sites</div><div style="font-size:13px;font-weight:600;">${settings.sitesText.substring(0,50)}</div></div>
                     </div>
-                    <div style="margin-bottom:20px;"><div style="font-size:14px;font-weight:600;color:#0072ff;border-bottom:2px solid #0072ff;padding-bottom:5px;margin-bottom:12px;">QR Code Scanning</div>
+                    <div style="margin-bottom:20px;"><div style="font-size:14px;font-weight:600;color:#0072ff;border-bottom:2px solid #0072ff;padding-bottom:5px;margin-bottom:12px;">Indoor Navigation Sessions (QR + Mobile App SDK)</div>
                         <div style="display:flex;gap:15px;">
-                            <div style="flex:1;padding:20px;background:#e3f2fd;border-radius:8px;text-align:center;"><div style="font-size:11px;color:#666;">Total QR Scans</div><div style="font-size:32px;font-weight:bold;color:#0072ff;">${totalQRScans}</div></div>
-                            <div style="flex:1;padding:20px;background:#e8f5e9;border-radius:8px;text-align:center;"><div style="font-size:11px;color:#666;">Unique Visitors</div><div style="font-size:32px;font-weight:bold;color:#22c55e;">${uniqueVisitors}</div></div>
+                            <div style="flex:1;padding:20px;background:#e3f2fd;border-radius:8px;text-align:center;"><div style="font-size:11px;color:#666;">Total Sessions</div><div style="font-size:28px;font-weight:bold;color:#0072ff;">${totalSdkSessions}</div></div>
+                            <div style="flex:1;padding:20px;background:#e3f2fd;border-radius:8px;text-align:center;"><div style="font-size:11px;color:#666;">QR Scans</div><div style="font-size:28px;font-weight:bold;color:#0072ff;">${totalQRScans}</div></div>
+                            <div style="flex:1;padding:20px;background:#e8f5e9;border-radius:8px;text-align:center;"><div style="font-size:11px;color:#666;">Mobile App SDK</div><div style="font-size:28px;font-weight:bold;color:#22c55e;">${totalMobileSessions}</div></div>
                         </div>
+                        <div style="margin-top:12px;padding:16px;background:#f8f9fa;border-radius:8px;text-align:center;"><div style="font-size:11px;color:#666;">Unique Visitors</div><div style="font-size:24px;font-weight:bold;color:#22c55e;">${uniqueVisitors}</div></div>
                     </div>
-                    <div style="margin-bottom:20px;background:#f8f9fa;border-radius:8px;padding:15px;"><div style="font-size:13px;font-weight:600;margin-bottom:10px;">QR Scan Trends</div><img src="${trendsChartImg}" style="width:100%;height:150px;object-fit:contain;"></div>
-                    <div style="margin-bottom:20px;"><div style="font-size:14px;font-weight:600;color:#22c55e;border-bottom:2px solid #22c55e;padding-bottom:5px;margin-bottom:12px;">Platform Breakdown</div>
+                    <div style="margin-bottom:20px;background:#f8f9fa;border-radius:8px;padding:15px;"><div style="font-size:13px;font-weight:600;margin-bottom:10px;">Combined Session Trend</div><img src="${totalTrendsChartImg}" style="width:100%;height:120px;object-fit:contain;"></div>
+                    <div style="margin-bottom:20px;background:#f8f9fa;border-radius:8px;padding:15px;"><div style="font-size:13px;font-weight:600;margin-bottom:10px;">QR Scan Trends</div><img src="${trendsChartImg}" style="width:100%;height:120px;object-fit:contain;"></div>
+                    <div style="margin-bottom:20px;background:#f8f9fa;border-radius:8px;padding:15px;"><div style="font-size:13px;font-weight:600;margin-bottom:10px;">Mobile App (SDK) Session Trend</div><img src="${mobileTrendsChartImg}" style="width:100%;height:120px;object-fit:contain;"></div>
+                    <div style="margin-bottom:20px;"><div style="font-size:14px;font-weight:600;color:#22c55e;border-bottom:2px solid #22c55e;padding-bottom:5px;margin-bottom:12px;">QR Scans by Platform</div>
                         <div style="display:flex;gap:15px;">
                             <div style="width:40%;background:#f8f9fa;border-radius:8px;padding:10px;"><img src="${platformChartImg}" style="width:100%;height:120px;object-fit:contain;"></div>
                             <div style="flex:1;display:flex;gap:10px;">
                                 <div style="flex:1;padding:15px;background:#f0f9ff;border-radius:8px;text-align:center;"><div style="font-size:11px;color:#666;">iOS</div><div style="font-size:24px;font-weight:bold;color:#007AFF;">${iosCount}</div><div style="font-size:10px;color:#999;">${iosPercent}</div></div>
                                 <div style="flex:1;padding:15px;background:#f0fdf4;border-radius:8px;text-align:center;"><div style="font-size:11px;color:#666;">Android</div><div style="font-size:24px;font-weight:bold;color:#34C759;">${androidCount}</div><div style="font-size:10px;color:#999;">${androidPercent}</div></div>
                                 <div style="flex:1;padding:15px;background:#fff7ed;border-radius:8px;text-align:center;"><div style="font-size:11px;color:#666;">Web</div><div style="font-size:24px;font-weight:bold;color:#FF9500;">${webCount}</div><div style="font-size:10px;color:#999;">${webPercent}</div></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="margin-bottom:20px;"><div style="font-size:14px;font-weight:600;color:#16a34a;border-bottom:2px solid #16a34a;padding-bottom:5px;margin-bottom:12px;">Mobile App (SDK) Session by Platform</div>
+                        <div style="display:flex;gap:15px;">
+                            <div style="width:40%;background:#f8f9fa;border-radius:8px;padding:10px;"><img src="${sdkPlatformChartImg}" style="width:100%;height:120px;object-fit:contain;"></div>
+                            <div style="flex:1;display:flex;gap:10px;">
+                                <div style="flex:1;padding:15px;background:#f0f9ff;border-radius:8px;text-align:center;"><div style="font-size:11px;color:#666;">iOS</div><div style="font-size:24px;font-weight:bold;color:#007AFF;">${sdkIosCount}</div><div style="font-size:10px;color:#999;">${sdkIosPercent}</div></div>
+                                <div style="flex:1;padding:15px;background:#f0fdf4;border-radius:8px;text-align:center;"><div style="font-size:11px;color:#666;">Android</div><div style="font-size:24px;font-weight:bold;color:#34C759;">${sdkAndroidCount}</div><div style="font-size:10px;color:#999;">${sdkAndroidPercent}</div></div>
+                                <div style="flex:1;padding:15px;background:#fff7ed;border-radius:8px;text-align:center;"><div style="font-size:11px;color:#666;">Web</div><div style="font-size:24px;font-weight:bold;color:#FF9500;">${sdkWebCount}</div><div style="font-size:10px;color:#999;">${sdkWebPercent}</div></div>
                             </div>
                         </div>
                     </div>
@@ -2050,7 +2079,7 @@
             try {
                 await html2pdf().set({
                     margin: 10,
-                    filename: `Indoor_Navigation_Report_${settings.customerName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`,
+                    filename: `Indoor_Navigation_SDK_Report_${settings.customerName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`,
                     image: { type: 'jpeg', quality: 0.98 },
                     html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
                     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
@@ -2079,29 +2108,21 @@
             });
             
             showLoading(true, 'Generating HTML report...');
+            await syncExportTrendViews(settings.trendsView);
             
-            // Update trends view if needed
-            if (settings.trendsView !== currentTrendsView) {
-                setTrendsView(settings.trendsView);
-                await new Promise(resolve => setTimeout(resolve, 500));
-            }
-            
-            // Sync visitor trends view to match QR trends view
-            if (settings.trendsView !== currentVisitorTrendsView) {
-                setVisitorTrendsView(settings.trendsView);
-                await new Promise(resolve => setTimeout(resolve, 500));
-            }
-            
-            // Capture all charts as base64 images
+            const totalTrendsChartImg = document.getElementById('totalTrendsChart')?.toDataURL('image/png', 1.0) || '';
             const trendsChartImg = document.getElementById('qrTrendsChart')?.toDataURL('image/png', 1.0) || '';
+            const mobileTrendsChartImg = document.getElementById('mobileTrendsChart')?.toDataURL('image/png', 1.0) || '';
             const visitorTrendsChartImg = document.getElementById('visitorTrendsChart')?.toDataURL('image/png', 1.0) || '';
             const platformChartImg = document.getElementById('platformChart')?.toDataURL('image/png', 1.0) || '';
+            const sdkPlatformChartImg = document.getElementById('sdkPlatformChart')?.toDataURL('image/png', 1.0) || '';
             const poiChartImg = document.getElementById('poiChart')?.toDataURL('image/png', 1.0) || '';
             const quickAccessChartImg = document.getElementById('quickAccessChart')?.toDataURL('image/png', 1.0) || '';
             const wordcloudImg = document.getElementById('wordcloudCanvas')?.toDataURL('image/png', 1.0) || '';
             
-            // Get metric values
+            const totalSdkSessions = document.getElementById('totalSdkSessions').textContent;
             const totalQRScans = document.getElementById('totalQRScans').textContent;
+            const totalMobileSessions = document.getElementById('totalMobileSessions').textContent;
             const uniqueVisitors = document.getElementById('uniqueVisitors').textContent;
             const iosCount = document.getElementById('iosCount').textContent;
             const androidCount = document.getElementById('androidCount').textContent;
@@ -2109,6 +2130,12 @@
             const iosPercent = document.getElementById('iosPercent').textContent;
             const androidPercent = document.getElementById('androidPercent').textContent;
             const webPercent = document.getElementById('webPercent').textContent;
+            const sdkIosCount = document.getElementById('sdkIosCount').textContent;
+            const sdkAndroidCount = document.getElementById('sdkAndroidCount').textContent;
+            const sdkWebCount = document.getElementById('sdkWebCount').textContent;
+            const sdkIosPercent = document.getElementById('sdkIosPercent').textContent;
+            const sdkAndroidPercent = document.getElementById('sdkAndroidPercent').textContent;
+            const sdkWebPercent = document.getElementById('sdkWebPercent').textContent;
             const totalPOI = document.getElementById('totalPOI').textContent;
             const totalQuickAccess = document.getElementById('totalQuickAccess').textContent;
             const totalSearches = document.getElementById('totalSearches').textContent;
@@ -2284,20 +2311,39 @@
             </div>
         </div>
         
-        <!-- QR Code Scanning -->
+        <!-- Indoor Navigation Sessions -->
         <div class="section">
-            <div class="section-title blue">Key Metrics • QR Code Scanning</div>
+            <div class="section-title blue">Key Metrics • Indoor Navigation Sessions (QR + Mobile App SDK)</div>
             <div class="metrics-row">
                 <div class="metric-card blue">
-                    <div class="metric-label">Total QR Scans</div>
-                    <div class="metric-value blue">${totalQRScans}</div>
-                    <div class="metric-subtitle">QR codes scanned for indoor navigation</div>
+                    <div class="metric-label">Total indoor navigation sessions</div>
+                    <div class="metric-value blue">${totalSdkSessions}</div>
+                    <div class="metric-subtitle">All sessions from QR scan and mobile app SDK</div>
                 </div>
+                <div class="metric-card blue">
+                    <div class="metric-label">Total QR Scan</div>
+                    <div class="metric-value blue">${totalQRScans}</div>
+                    <div class="metric-subtitle">Sessions via wayfinding QR web app</div>
+                </div>
+                <div class="metric-card green">
+                    <div class="metric-label">Total Mobile App Sessions</div>
+                    <div class="metric-value green">${totalMobileSessions}</div>
+                    <div class="metric-subtitle">Sessions from embedded mobile app SDK</div>
+                </div>
+            </div>
+            <div class="metrics-row" style="margin-top:0;">
                 <div class="metric-card green">
                     <div class="metric-label">Unique Visitors</div>
                     <div class="metric-value green">${uniqueVisitors}</div>
-                    <div class="metric-subtitle">Distinct users who scanned QR codes</div>
+                    <div class="metric-subtitle">Distinct users across QR and SDK sessions</div>
                 </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <div class="chart-card">
+                <div class="chart-title">Indoor Navigation Session Trend (QR Scan + Mobile App SDK)</div>
+                <img src="${totalTrendsChartImg}" class="chart-img" style="height:220px; object-fit:contain;">
             </div>
         </div>
         
@@ -2309,6 +2355,13 @@
             </div>
         </div>
         
+        <div class="section">
+            <div class="chart-card">
+                <div class="chart-title">Mobile App (SDK) Session Trend (${settings.trendsView.charAt(0).toUpperCase() + settings.trendsView.slice(1)})</div>
+                <img src="${mobileTrendsChartImg}" class="chart-img" style="height:220px; object-fit:contain;">
+            </div>
+        </div>
+        
         <!-- Unique Visitors Trends Chart -->
         <div class="section">
             <div class="chart-card">
@@ -2317,9 +2370,9 @@
             </div>
         </div>
         
-        <!-- Platform Breakdown -->
+        <!-- QR Platform Breakdown -->
         <div class="section">
-            <div class="section-title green">Platform Breakdown</div>
+            <div class="section-title green">QR Scans by Platform</div>
             <div class="two-col">
                 <div class="col-left">
                     <div class="chart-card" style="height:100%;">
@@ -2342,6 +2395,36 @@
                             <div class="platform-label">Web</div>
                             <div class="platform-value" style="color:#FF9500;">${webCount}</div>
                             <div class="platform-percent">${webPercent}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <div class="section-title green">Mobile App (SDK) Session by Platform</div>
+            <div class="two-col">
+                <div class="col-left">
+                    <div class="chart-card" style="height:100%;">
+                        <img src="${sdkPlatformChartImg}" class="chart-img" style="height:180px; object-fit:contain;">
+                    </div>
+                </div>
+                <div class="col-right">
+                    <div class="platform-grid">
+                        <div class="platform-card">
+                            <div class="platform-label">iOS</div>
+                            <div class="platform-value" style="color:#007AFF;">${sdkIosCount}</div>
+                            <div class="platform-percent">${sdkIosPercent}</div>
+                        </div>
+                        <div class="platform-card">
+                            <div class="platform-label">Android</div>
+                            <div class="platform-value" style="color:#34C759;">${sdkAndroidCount}</div>
+                            <div class="platform-percent">${sdkAndroidPercent}</div>
+                        </div>
+                        <div class="platform-card">
+                            <div class="platform-label">Web</div>
+                            <div class="platform-value" style="color:#FF9500;">${sdkWebCount}</div>
+                            <div class="platform-percent">${sdkWebPercent}</div>
                         </div>
                     </div>
                 </div>
@@ -2455,7 +2538,7 @@
             // Download as HTML file
             const blob = new Blob([htmlContent], { type: 'text/html' });
             const link = document.createElement('a');
-            link.download = `Indoor_Navigation_Report_${settings.customerName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.html`;
+            link.download = `Indoor_Navigation_SDK_Report_${settings.customerName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.html`;
             link.href = URL.createObjectURL(blob);
             link.click();
             URL.revokeObjectURL(link.href);
@@ -2465,12 +2548,10 @@
         
         // Fetch and display reports count
         function fetchReportsCount() {
-            fetch('/api/analytics/audit')
+            fetch('/api/analytics/stats')
                 .then(res => res.json())
                 .then(data => {
-                    const reportsCount = (data.events || []).filter(e => 
-                        e.event_type && e.event_type.includes('report_generated')
-                    ).length;
+                    const reportsCount = data.reports_generated || 0;
                     document.getElementById('reportsCountValue').textContent = reportsCount.toLocaleString();
                 })
                 .catch(e => {

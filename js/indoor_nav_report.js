@@ -2168,12 +2168,10 @@
         
         // Fetch and display reports count
         function fetchReportsCount() {
-            fetch('/api/analytics/audit')
+            fetch('/api/analytics/stats')
                 .then(res => res.json())
                 .then(data => {
-                    const reportsCount = (data.events || []).filter(e => 
-                        e.event_type && e.event_type.includes('report_generated')
-                    ).length;
+                    const reportsCount = data.reports_generated || 0;
                     document.getElementById('reportsCountValue').textContent = reportsCount.toLocaleString();
                 })
                 .catch(e => {
