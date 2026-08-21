@@ -931,6 +931,17 @@
             return Array.from(appSelect.selectedOptions).map(opt => opt.value);
         }
 
+        function getAppIdsDisplayText() {
+            const appSelect = document.getElementById('appSelect');
+            if (!appSelect || appSelect.options.length === 0) return 'All App IDs';
+            const selected = getSelectedAppIds();
+            if (selected.length === 0 || selected.length === appSelect.options.length) {
+                return 'All App IDs';
+            }
+            const label = selected.join(', ');
+            return label.length > 80 ? `${label.substring(0, 80)}...` : label;
+        }
+
         function matchesSdkFilters(row, selectedSites, selectedAppIds) {
             const siteSelect = document.getElementById('siteSelect');
             const appSelect = document.getElementById('appSelect');
@@ -1961,7 +1972,15 @@
             const days = selectedRange ? selectedRange.days : 30;
             const dateRange = selectedRange ? formatDateRange(selectedRange.startDate, selectedRange.endDate) : '';
             
-            return { customerName, sitesText, includeAdvanced, trendsView, days, dateRange };
+            return {
+                customerName,
+                sitesText,
+                appIdsText: getAppIdsDisplayText(),
+                includeAdvanced,
+                trendsView,
+                days,
+                dateRange
+            };
         }
         
         // Export as PDF using html2pdf (light theme for reliability)
@@ -2015,6 +2034,10 @@
                         <div style="flex:1;text-align:center;"><div style="font-size:10px;color:#666;text-transform:uppercase;">Customer</div><div style="font-size:14px;font-weight:600;">${settings.customerName}</div></div>
                         <div style="flex:1;text-align:center;border-left:1px solid #ddd;border-right:1px solid #ddd;"><div style="font-size:10px;color:#666;text-transform:uppercase;">Duration</div><div style="font-size:14px;font-weight:600;">${settings.dateRange}</div></div>
                         <div style="flex:1;text-align:center;"><div style="font-size:10px;color:#666;text-transform:uppercase;">Sites</div><div style="font-size:13px;font-weight:600;">${settings.sitesText.substring(0,50)}</div></div>
+                    </div>
+                    <div style="margin-bottom:25px;padding:12px 15px;background:#f0f9ff;border-radius:8px;text-align:center;">
+                        <div style="font-size:10px;color:#666;text-transform:uppercase;">App IDs (Mobile SDK Filter)</div>
+                        <div style="font-size:13px;font-weight:600;margin-top:4px;">${settings.appIdsText}</div>
                     </div>
                     <div style="margin-bottom:20px;"><div style="font-size:14px;font-weight:600;color:#0072ff;border-bottom:2px solid #0072ff;padding-bottom:5px;margin-bottom:12px;">Indoor Navigation Sessions (QR + Mobile App SDK)</div>
                         <div style="display:flex;gap:15px;">
@@ -2309,6 +2332,14 @@
                 <div class="meta-label">Sites</div>
                 <div class="meta-value" style="font-size:${settings.sitesText.length > 40 ? '12px' : '15px'};">${settings.sitesText.length > 60 ? settings.sitesText.substring(0, 60) + '...' : settings.sitesText}</div>
             </div>
+            <div class="meta-item">
+                <div class="meta-label">App IDs</div>
+                <div class="meta-value" style="font-size:${settings.appIdsText.length > 40 ? '11px' : '15px'};">${settings.appIdsText}</div>
+            </div>
+        </div>
+        
+        <div style="margin-bottom:24px;padding:14px 18px;background:rgba(0,198,255,0.08);border-radius:12px;border:1px solid rgba(0,198,255,0.2);font-size:12px;color:rgba(255,255,255,0.75);">
+            <strong>Report scope:</strong> Combined QR scan and mobile app SDK indoor navigation sessions for the selected tenant, sites, and app IDs.
         </div>
         
         <!-- Indoor Navigation Sessions -->
@@ -2591,3 +2622,9 @@
         document.getElementById('tenantInput').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') getData();
         });
+
+        // Expose export handlers for inline onclick handlers in HTML
+        window.showExportModal = showExportModal;
+        window.closeExportModal = closeExportModal;
+        window.exportAsHTML = exportAsHTML;
+        window.exportAsPrintPDF = exportAsPrintPDF;

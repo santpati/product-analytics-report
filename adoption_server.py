@@ -167,7 +167,10 @@ class AdoptionHandler(http.server.SimpleHTTPRequestHandler):
 
     def end_headers(self):
         path = urlparse(getattr(self, 'path', '')).path
-        if path.endswith('.js') or path.endswith('.png') or path.endswith('.jpg') or path.endswith('.webp') or path.endswith('.ico'):
+        # Report scripts change frequently; avoid stale export logic in browsers.
+        if path.startswith('/js/indoor_nav_') or path.startswith('/js/space_explorer_'):
+            self.send_header('Cache-Control', 'no-cache, must-revalidate')
+        elif path.endswith('.js') or path.endswith('.png') or path.endswith('.jpg') or path.endswith('.webp') or path.endswith('.ico'):
             self.send_header('Cache-Control', 'public, max-age=86400')
         elif path in REPORT_HTML_PATHS or path.endswith('.html') or 'tenantID=' in path:
             self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
