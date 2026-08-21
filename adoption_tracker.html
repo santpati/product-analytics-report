@@ -9,9 +9,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <!-- Non-blocking font loading -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-    <link rel="prefetch" href="/indoor-nav-report">
-    <link rel="prefetch" href="/indoor-nav-sdk-report">
-    <link rel="prefetch" href="/space-explorer">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
@@ -676,10 +673,18 @@
                 });
         }
 
+        function scheduleReportsCount() {
+            const run = () => fetchReportsCount();
+            if ('requestIdleCallback' in window) {
+                requestIdleCallback(run, { timeout: 2000 });
+            } else {
+                setTimeout(run, 100);
+            }
+        }
+
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
-            // Fetch reports count immediately (even before login)
-            fetchReportsCount();
+            scheduleReportsCount();
             
             const alreadyLoggedIn = checkLoginStatus();
             if (alreadyLoggedIn) {

@@ -19,6 +19,7 @@ import secrets
 from urllib.parse import urlparse, parse_qs
 from datetime import datetime, timedelta
 import os
+import mimetypes
 
 PORT = 8080
 AUTH_USERNAME = os.environ.get('DASHBOARD_USERNAME', 'Spaces')
@@ -84,8 +85,59 @@ def init_database():
     conn.close()
     print("📊 Analytics database initialized")
 
+COMPRESSIBLE_EXTS = {'.html', '.js', '.css', '.json', '.svg'}
+STATIC_FILE_CACHE = {}
+STATIC_CACHE_LOCK = threading.Lock()
+REPORT_HTML_PATHS = {
+    '/',
+    '/index.html',
+    '/adoption_tracker.html',
+    '/indoor_nav_report.html',
+    '/indoor_nav_sdk_report.html',
+    '/space_explorer_report.html',
+    '/analytics.html',
+    '/indoor-nav-report',
+    '/indoor-navigation-report',
+    '/indoor-nav-sdk-report',
+    '/space-explorer',
+    '/analytics',
+}
+
+
+def get_cached_static_file(path):
+    """Load static file bytes from memory cache keyed by mtime."""
+    mtime = os.path.getmtime(path)
+    with STATIC_CACHE_LOCK:
+        cached = STATIC_FILE_CACHE.get(path)
+        if cached and cached['mtime'] == mtime:
+            return cached
+
+    with open(path, 'rb') as handle:
+        content = handle.read()
+
+    ext = os.path.splitext(path)[1].lower()
+    entry = {
+        'mtime': mtime,
+        'raw': content,
+        'content_type': mimetypes.guess_type(path)[0] or 'application/octet-stream',
+        'gzip': None,
+    }
+    if ext in COMPRESSIBLE_EXTS and len(content) >= 1024:
+        compressed = gzip.compress(content, compresslevel=6)
+        if len(compressed) < len(content):
+            entry['gzip'] = compressed
+
+    with STATIC_CACHE_LOCK:
+        STATIC_FILE_CACHE[path] = entry
+    return entry
+
+
 class ReuseTCPServer(socketserver.TCPServer):
     allow_reuse_address = True
+
+
+class ThreadedReuseTCPServer(socketserver.ThreadingMixIn, ReuseTCPServer):
+    daemon_threads = True
 
 
 class AdoptionHandler(http.server.SimpleHTTPRequestHandler):
@@ -114,10 +166,10 @@ class AdoptionHandler(http.server.SimpleHTTPRequestHandler):
         self.wfile.write(b'<h1>401 Unauthorized</h1><p>Authentication required.</p>')
 
     def end_headers(self):
-        path = getattr(self, 'path', '')
+        path = urlparse(getattr(self, 'path', '')).path
         if path.endswith('.js') or path.endswith('.png') or path.endswith('.jpg') or path.endswith('.webp') or path.endswith('.ico'):
             self.send_header('Cache-Control', 'public, max-age=86400')
-        elif path and (path.endswith('.html') or path == '/' or path == '/analytics' or 'tenantID=' in path):
+        elif path in REPORT_HTML_PATHS or path.endswith('.html') or 'tenantID=' in path:
             self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
             self.send_header('Pragma', 'no-cache')
             self.send_header('Expires', '0')
@@ -130,19 +182,14 @@ class AdoptionHandler(http.server.SimpleHTTPRequestHandler):
             self.send_error(404, 'File not found')
             return
 
-        ext = os.path.splitext(path)[1].lower()
-        with open(path, 'rb') as handle:
-            content = handle.read()
-
-        content_type = self.guess_type(path)
+        cached = get_cached_static_file(path)
+        content = cached['raw']
+        content_type = cached['content_type']
         body = content
         encoding = None
-        compressible = ext in ('.html', '.js', '.css', '.json', '.svg')
-        if compressible and 'gzip' in self.headers.get('Accept-Encoding', '').lower() and len(content) >= 1024:
-            compressed = gzip.compress(content, compresslevel=6)
-            if len(compressed) < len(content):
-                body = compressed
-                encoding = 'gzip'
+        if cached['gzip'] and 'gzip' in self.headers.get('Accept-Encoding', '').lower():
+            body = cached['gzip']
+            encoding = 'gzip'
 
         self.send_response(200)
         self.send_header('Content-Type', content_type)
@@ -467,7 +514,7 @@ def main():
     # Initialize the analytics database
     init_database()
     
-    with ReuseTCPServer(("", PORT), AdoptionHandler) as httpd:
+    with ThreadedReuseTCPServer(("", PORT), AdoptionHandler) as httpd:
         print(f"""
 ╔══════════════════════════════════════════════════════════════╗
 ║           🚀 ADOPTION TRACKER SERVER RUNNING 🚀              ║
