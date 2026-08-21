@@ -8,13 +8,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
-    <link rel="preload" href="https://cdn.jsdelivr.net/npm/chart.js" as="script">
     <!-- Non-blocking font loading -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-    <!-- Scripts - loaded after CSS -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
-    <script src="https://www.gstatic.com/charts/loader.js"></script>
     <style>
         * {
             margin: 0;
@@ -2199,12 +2194,8 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/wordcloud@1.2.2/src/wordcloud2.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="/report_loaders.js"></script>
     <script>
-        // Register Chart.js datalabels plugin
-        Chart.register(ChartDataLabels);
-        
         // Month band backgrounds for long daily trend charts (GA / Amplitude style)
         const monthBandPlugin = {
             id: 'monthBandPlugin',
@@ -2518,10 +2509,7 @@
             return false;
         }
         
-        // Load Google Charts
-        google.charts.load('current', {'packages':['sankey']});
         let googleChartsLoaded = false;
-        google.charts.setOnLoadCallback(() => { googleChartsLoaded = true; });
         
         const BASE_URL = '/api/pendo';
         
@@ -2695,12 +2683,6 @@
             });
             
             document.getElementById('downloadBtn').style.display = 'none';
-            renderTrendsChart(currentTrendsView);
-            renderVisitorTrendsChart(currentVisitorTrendsView);
-            renderPlatformChart([]);
-            renderPoiChart([]);
-            renderQuickAccessChart([]);
-            renderWordCloud([]);
         }
         
         function handleDurationChange() {
@@ -3110,6 +3092,7 @@
             }
             
             showLoading(true, 'Loading report data...');
+            await ReportLoaders.ensureChartJs();
             
             const accountId = `${tenantId}${getAccountSuffix()}`;
             const { startMs, endMs } = dateRange;
@@ -3358,12 +3341,13 @@
             }
         }
         
-        function setTrendsView(view) {
+        async function setTrendsView(view) {
             currentTrendsView = view;
             if (isReportDataStale()) {
                 loadData();
                 return;
             }
+            await ReportLoaders.ensureChartJs();
             const chartCard = document.getElementById('qrTrendsChart').closest('.chart-card-full');
             chartCard.querySelectorAll('.view-toggle button').forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.view === view);
@@ -3515,12 +3499,13 @@
             );
         }
         
-        function setVisitorTrendsView(view) {
+        async function setVisitorTrendsView(view) {
             currentVisitorTrendsView = view;
             if (isReportDataStale()) {
                 loadData();
                 return;
             }
+            await ReportLoaders.ensureChartJs();
             const chartCard = document.getElementById('visitorTrendsChart').closest('.chart-card-full');
             chartCard.querySelectorAll('.view-toggle button').forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.view === view);
@@ -3806,7 +3791,7 @@
             });
         }
         
-        function renderWordCloud(data) {
+        async function renderWordCloud(data) {
             const container = document.getElementById('wordcloudContainer');
             const canvas = document.getElementById('wordcloudCanvas');
             
@@ -3828,6 +3813,8 @@
                 ctx.fillText('No search data available', canvas.width / 2, canvas.height / 2);
                 return;
             }
+
+            await ReportLoaders.ensureWordCloud();
             
             // Calculate max count for scaling
             const maxCount = Math.max(...filtered.map(d => d.count));
@@ -3872,12 +3859,10 @@
             });
         }
         
-        function renderSankeyChart(started, completed, canceled) {
-            if (!googleChartsLoaded) {
-                setTimeout(() => renderSankeyChart(started, completed, canceled), 100);
-                return;
-            }
-            
+        async function renderSankeyChart(started, completed, canceled) {
+            await ReportLoaders.ensureGoogleCharts();
+            googleChartsLoaded = true;
+
             const container = document.getElementById('sankeyChart');
             
             if (started === 0) {
@@ -3977,6 +3962,7 @@
             const settings = getExportSettings();
             closeExportModal();
             showLoading(true, 'Generating PDF...');
+            await ReportLoaders.ensureHtml2Pdf();
             
             // Update trends view if needed
             if (settings.trendsView !== currentTrendsView) {
@@ -4515,12 +4501,6 @@
             document.getElementById('tenantInput').value = tenantId;
             document.getElementById('durationSelect').value = duration;
             
-            // Render empty charts
-            renderTrendsChart('daily');
-            renderPlatformChart([]);
-            renderPoiChart([]);
-            renderQuickAccessChart([]);
-            renderWordCloud([]);
         });
         
         // Allow Enter key to get data

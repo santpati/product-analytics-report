@@ -8,12 +8,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
-    <link rel="preload" href="https://cdn.jsdelivr.net/npm/chart.js" as="script">
     <!-- Non-blocking font loading -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-    <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
@@ -602,8 +598,8 @@
         </div>
     </div>
 
+    <script src="/report_loaders.js"></script>
     <script>
-        Chart.register(ChartDataLabels);
         
         // Login functions (shared session)
         const VALID_USERNAME = 'Spaces';
@@ -962,6 +958,7 @@
         
         async function loadDataDirect(tenantId, dateRange, selectedSites = null) {
             showLoading(true, 'Loading analytics data...');
+            await ReportLoaders.ensureChartJs();
             
             trackEvent('report_generated', { tenant_id: tenantId, duration_days: dateRange.days });
             

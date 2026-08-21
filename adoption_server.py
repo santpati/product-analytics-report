@@ -8,6 +8,7 @@ Includes usage analytics tracking with SQLite storage
 import http.server
 import socketserver
 import json
+import gzip
 import urllib.request
 import urllib.error
 import ssl
@@ -109,13 +110,43 @@ class AdoptionHandler(http.server.SimpleHTTPRequestHandler):
         self.wfile.write(b'<h1>401 Unauthorized</h1><p>Authentication required.</p>')
 
     def end_headers(self):
-        # Add cache-control headers to prevent caching of HTML files
         path = getattr(self, 'path', '')
-        if path and (path.endswith('.html') or path == '/' or path == '/analytics' or 'tenantID=' in path):
+        if path.endswith('.js') or path.endswith('.png') or path.endswith('.jpg') or path.endswith('.webp') or path.endswith('.ico'):
+            self.send_header('Cache-Control', 'public, max-age=86400')
+        elif path and (path.endswith('.html') or path == '/' or path == '/analytics' or 'tenantID=' in path):
             self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
             self.send_header('Pragma', 'no-cache')
             self.send_header('Expires', '0')
         super().end_headers()
+
+    def serve_static_file(self):
+        """Serve static files with optional gzip compression."""
+        path = self.translate_path(urlparse(self.path).path)
+        if not os.path.isfile(path) or os.path.isdir(path):
+            self.send_error(404, 'File not found')
+            return
+
+        ext = os.path.splitext(path)[1].lower()
+        with open(path, 'rb') as handle:
+            content = handle.read()
+
+        content_type = self.guess_type(path)
+        body = content
+        encoding = None
+        compressible = ext in ('.html', '.js', '.css', '.json', '.svg')
+        if compressible and 'gzip' in self.headers.get('Accept-Encoding', '').lower() and len(content) >= 1024:
+            compressed = gzip.compress(content, compresslevel=6)
+            if len(compressed) < len(content):
+                body = compressed
+                encoding = 'gzip'
+
+        self.send_response(200)
+        self.send_header('Content-Type', content_type)
+        self.send_header('Content-Length', str(len(body)))
+        if encoding:
+            self.send_header('Content-Encoding', encoding)
+        self.end_headers()
+        self.wfile.write(body)
     
     def do_GET(self):
         parsed = urlparse(self.path)
@@ -125,31 +156,31 @@ class AdoptionHandler(http.server.SimpleHTTPRequestHandler):
         # Indoor Navigation Report
         if path == '/indoor-nav-report' or path == '/indoor-navigation-report':
             self.path = '/indoor_nav_report.html'
-            return http.server.SimpleHTTPRequestHandler.do_GET(self)
+            return self.serve_static_file()
         
         if path == '/indoor-nav-sdk-report':
             self.path = '/indoor_nav_sdk_report.html'
-            return http.server.SimpleHTTPRequestHandler.do_GET(self)
+            return self.serve_static_file()
         
         # Serve main page - root path
         if path == '/' or path == '/index.html':
             self.path = '/adoption_tracker.html'
-            return http.server.SimpleHTTPRequestHandler.do_GET(self)
+            return self.serve_static_file()
         
         # Handle URL pattern: /tenantID=xxx/duration=xxxd
         if path.startswith('/tenantID=') or (path.count('/') >= 1 and 'tenantID=' in path):
             self.path = '/adoption_tracker.html'
-            return http.server.SimpleHTTPRequestHandler.do_GET(self)
+            return self.serve_static_file()
         
         # Serve analytics dashboard
         if path == '/analytics':
             self.path = '/analytics.html'
-            return http.server.SimpleHTTPRequestHandler.do_GET(self)
+            return self.serve_static_file()
         
         # Space Explorer Report
         if path == '/space-explorer':
             self.path = '/space_explorer_report.html'
-            return http.server.SimpleHTTPRequestHandler.do_GET(self)
+            return self.serve_static_file()
         
         # API endpoints - no auth required (pages handle their own auth)
         if path.startswith('/api/'):
@@ -173,7 +204,7 @@ class AdoptionHandler(http.server.SimpleHTTPRequestHandler):
             self.proxy_pendo_get(path[11:], parse_qs(parsed.query))
             return
         
-        return http.server.SimpleHTTPRequestHandler.do_GET(self)
+        return self.serve_static_file()
     
     def do_POST(self):
         parsed = urlparse(self.path)
