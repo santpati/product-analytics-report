@@ -564,6 +564,7 @@
             
             loginBtn.disabled = false;
             loginBtn.textContent = 'Sign In';
+            refreshData();
         }
         
         function checkLoginStatus() {
@@ -576,7 +577,9 @@
         
         // Check login on page load
         document.addEventListener('DOMContentLoaded', function() {
-            checkLoginStatus();
+            if (checkLoginStatus()) {
+                refreshData();
+            }
         });
         
         let trendsChart = null;
@@ -727,7 +730,9 @@
         async function fetchAudit() {
             try {
                 const response = await fetch('/api/analytics/audit');
-                const data = await response.json();
+                if (!response.ok) throw new Error('HTTP ' + response.status);
+                const payload = await response.json();
+                const data = Array.isArray(payload) ? payload : (payload.events || []);
                 
                 const tbody = document.getElementById('auditTableBody');
                 
@@ -781,6 +786,7 @@
         }
         
         async function refreshData() {
+            if (!isLoggedIn()) return;
             await Promise.all([
                 fetchStats(),
                 fetchTimeseries(),
@@ -791,11 +797,10 @@
                 'Last Updated: ' + formatTime(new Date());
         }
         
-        // Initial load
-        refreshData();
-        
-        // Auto-refresh every 30 seconds
-        setInterval(refreshData, 30000);
+        // Auto-refresh every 30 seconds when logged in
+        setInterval(function() {
+            if (isLoggedIn()) refreshData();
+        }, 30000);
     </script>
 </body>
 </html>

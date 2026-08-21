@@ -42,6 +42,11 @@ def get_db_connection():
         _db_local.conn.row_factory = sqlite3.Row
     return _db_local.conn
 
+# Event matching — supports legacy names and prefixed portal/report events.
+SQL_PAGE_VIEW = "event_type LIKE '%page_view%'"
+SQL_REPORT_GENERATED = "(event_type LIKE '%report_generated%' OR event_type = 'load_data')"
+SQL_REPORT_DOWNLOADED = "(event_type LIKE '%report_downloaded%' OR event_type LIKE '%download_report%' OR event_type = 'download_report')"
+
 def init_database():
     """Initialize the SQLite database with required tables"""
     conn = sqlite3.connect(DB_PATH)
@@ -226,16 +231,16 @@ class AdoptionHandler(http.server.SimpleHTTPRequestHandler):
             conn = get_db_connection()
             cursor = conn.cursor()
             
-            # Total page views
-            cursor.execute("SELECT COUNT(*) FROM analytics_events WHERE event_type = 'page_view'")
+            # Total page views (legacy + [Portal]/[IndoorNav]/[SpaceExplorer] page_view)
+            cursor.execute(f"SELECT COUNT(*) FROM analytics_events WHERE {SQL_PAGE_VIEW}")
             page_views = cursor.fetchone()[0]
             
-            # Total reports generated (load_data events)
-            cursor.execute("SELECT COUNT(*) FROM analytics_events WHERE event_type = 'load_data'")
+            # Total reports generated
+            cursor.execute(f"SELECT COUNT(*) FROM analytics_events WHERE {SQL_REPORT_GENERATED}")
             reports_generated = cursor.fetchone()[0]
             
             # Total reports downloaded
-            cursor.execute("SELECT COUNT(*) FROM analytics_events WHERE event_type = 'download_report'")
+            cursor.execute(f"SELECT COUNT(*) FROM analytics_events WHERE {SQL_REPORT_DOWNLOADED}")
             reports_downloaded = cursor.fetchone()[0]
             
             # Unique tenants
@@ -243,10 +248,10 @@ class AdoptionHandler(http.server.SimpleHTTPRequestHandler):
             unique_tenants = cursor.fetchone()[0]
             
             # Total sessions (unique combinations of tenant_id + date)
-            cursor.execute("""
+            cursor.execute(f"""
                 SELECT COUNT(DISTINCT tenant_id || DATE(timestamp)) 
                 FROM analytics_events 
-                WHERE event_type = 'load_data' AND tenant_id != ''
+                WHERE {SQL_REPORT_GENERATED} AND tenant_id != ''
             """)
             total_sessions = cursor.fetchone()[0]
             
@@ -274,11 +279,11 @@ class AdoptionHandler(http.server.SimpleHTTPRequestHandler):
             cursor = conn.cursor()
             
             # Get daily counts for the last 7 days
-            cursor.execute("""
+            cursor.execute(f"""
                 SELECT 
                     DATE(timestamp) as date,
-                    SUM(CASE WHEN event_type = 'load_data' THEN 1 ELSE 0 END) as reports_generated,
-                    SUM(CASE WHEN event_type = 'download_report' THEN 1 ELSE 0 END) as reports_downloaded
+                    SUM(CASE WHEN {SQL_REPORT_GENERATED} THEN 1 ELSE 0 END) as reports_generated,
+                    SUM(CASE WHEN {SQL_REPORT_DOWNLOADED} THEN 1 ELSE 0 END) as reports_downloaded
                 FROM analytics_events
                 WHERE timestamp >= DATE('now', '-7 days')
                 GROUP BY DATE(timestamp)
