@@ -2386,7 +2386,15 @@
                 });
             }
         };
-        Chart.register(monthBandPlugin);
+        let monthBandPluginRegistered = false;
+
+        async function ensureChartsReady() {
+            await ReportLoaders.ensureChartJs();
+            if (!monthBandPluginRegistered) {
+                Chart.register(monthBandPlugin);
+                monthBandPluginRegistered = true;
+            }
+        }
         
         const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
         
@@ -3466,7 +3474,7 @@
             }
             
             showLoading(true, 'Loading report data...');
-            await ReportLoaders.ensureChartJs();
+            await ensureChartsReady();
             
             const accountId = `${tenantId}${getAccountSuffix()}`;
             const { startMs, endMs } = dateRange;
@@ -3671,7 +3679,7 @@
                 loadData();
                 return;
             }
-            await ReportLoaders.ensureChartJs();
+            await ensureChartsReady();
             const chartCard = document.getElementById('qrTrendsChart').closest('.chart-card-full');
             chartCard.querySelectorAll('.view-toggle button').forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.view === view);
@@ -3827,7 +3835,7 @@
         async function setTotalTrendsView(view) {
             currentTotalTrendsView = view;
             if (isReportDataStale()) { loadData(); return; }
-            await ReportLoaders.ensureChartJs();
+            await ensureChartsReady();
             const chartCard = document.getElementById('totalTrendsChart').closest('.chart-card-full');
             chartCard.querySelectorAll('.view-toggle button').forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.view === view);
@@ -3838,7 +3846,7 @@
         async function setMobileTrendsView(view) {
             currentMobileTrendsView = view;
             if (isReportDataStale()) { loadData(); return; }
-            await ReportLoaders.ensureChartJs();
+            await ensureChartsReady();
             const chartCard = document.getElementById('mobileTrendsChart').closest('.chart-card-full');
             chartCard.querySelectorAll('.view-toggle button').forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.view === view);
@@ -3924,7 +3932,7 @@
                 loadData();
                 return;
             }
-            await ReportLoaders.ensureChartJs();
+            await ensureChartsReady();
             const chartCard = document.getElementById('visitorTrendsChart').closest('.chart-card-full');
             chartCard.querySelectorAll('.view-toggle button').forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.view === view);
