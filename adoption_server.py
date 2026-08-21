@@ -84,6 +84,10 @@ def init_database():
     conn.close()
     print("📊 Analytics database initialized")
 
+class ReuseTCPServer(socketserver.TCPServer):
+    allow_reuse_address = True
+
+
 class AdoptionHandler(http.server.SimpleHTTPRequestHandler):
     def check_auth(self):
         auth_header = self.headers.get('Authorization')
@@ -463,7 +467,7 @@ def main():
     # Initialize the analytics database
     init_database()
     
-    with socketserver.TCPServer(("", PORT), AdoptionHandler) as httpd:
+    with ReuseTCPServer(("", PORT), AdoptionHandler) as httpd:
         print(f"""
 ╔══════════════════════════════════════════════════════════════╗
 ║           🚀 ADOPTION TRACKER SERVER RUNNING 🚀              ║
