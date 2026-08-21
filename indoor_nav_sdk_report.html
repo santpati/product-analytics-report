@@ -1272,6 +1272,11 @@
             height: 100%;
             object-fit: cover;
         }
+
+        .metric-icon-container.mobile-app-icon img {
+            object-fit: contain;
+            transform: scale(1.3);
+        }
         
         .metric-content {
             flex: 1;
@@ -2004,7 +2009,7 @@
                     <img src="sdk-nav-icon.png" alt="Indoor Navigation Session">
                 </div>
                 <div class="metric-content">
-                    <div class="metric-label-hero">Total Indoor Navigation Session with QR Scan and Mobile App (SDK)</div>
+                    <div class="metric-label-hero">Total indoor navigation sessions</div>
                     <div class="metric-value-hero" id="totalSdkSessions">--</div>
                     <div class="metric-subtitle-hero">All sessions from QR scan and mobile app SDK</div>
                 </div>
@@ -2020,7 +2025,7 @@
                 </div>
             </div>
             <div class="metric-card-hero green-highlight">
-                <div class="metric-icon-container">
+                <div class="metric-icon-container mobile-app-icon">
                     <img src="mynm-app-icon.png" alt="Mobile App">
                 </div>
                 <div class="metric-content">
@@ -3113,9 +3118,41 @@
                 day: row.day,
                 locationHierarchy: row.properties?.locationHierarchy || '',
                 appId: row.properties?.appId || '',
-                mobileOs: row.properties?.mobileOs || '',
+                phoneMake: row.properties?.phoneMake || '',
                 count: row.count || 0
             };
+        }
+
+        function classifyPlatformFromPhoneMake(phoneMake) {
+            const make = (phoneMake || '').trim().toLowerCase();
+            if (!make || make === 'unknown' || make === 'other' || make === 'null') {
+                return 'web';
+            }
+            if (make.includes('apple') || make.includes('iphone') || make.includes('ipad')) {
+                return 'ios';
+            }
+            const androidMakes = [
+                'samsung', 'google', 'motorola', 'oneplus', 'huawei', 'xiaomi',
+                'oppo', 'vivo', 'lg', 'sony', 'nokia', 'pixel', 'realme', 'htc',
+                'honor', 'lenovo', 'asus', 'tcl', 'zte', 'android', 'blackberry',
+                'fairphone', 'nothing'
+            ];
+            if (androidMakes.some(m => make.includes(m))) {
+                return 'android';
+            }
+            return 'android';
+        }
+
+        function countPlatformFromPhoneMake(data) {
+            let ios = 0, android = 0, web = 0;
+            data.forEach(d => {
+                const platform = classifyPlatformFromPhoneMake(d.properties?.phoneMake || d.phoneMake || '');
+                const count = d.count || 0;
+                if (platform === 'ios') ios += count;
+                else if (platform === 'android') android += count;
+                else web += count;
+            });
+            return { ios, android, web, total: ios + android + web };
         }
 
         function normalizeVisitorRow(row) {
@@ -3137,7 +3174,7 @@
                         pipeline: [
                             { source: { trackEvents: { trackTypeId: SDK_SESSION_START_TRACK_ID }, timeSeries: { period: 'dayRange', first: chunk.startMs, last: chunk.endMs } } },
                             { filter: `accountId == "${accountId}"` },
-                            { group: { group: ['day', 'properties.locationHierarchy', 'properties.appId', 'properties.mobileOs'], fields: [{ count: { sum: 'numEvents' } }] } },
+                            { group: { group: ['day', 'properties.locationHierarchy', 'properties.appId', 'properties.phoneMake'], fields: [{ count: { sum: 'numEvents' } }] } },
                             { limit: PENDO_AGGREGATION_LIMIT }
                         ]
                     }
@@ -3281,11 +3318,11 @@
         function platformRowsFromBreakdown(rows) {
             const grouped = {};
             rows.forEach(r => {
-                const os = r.mobileOs || '';
-                grouped[os] = (grouped[os] || 0) + (r.count || 0);
+                const phoneMake = r.phoneMake || '';
+                grouped[phoneMake] = (grouped[phoneMake] || 0) + (r.count || 0);
             });
-            return Object.entries(grouped).map(([mobileOs, count]) => ({
-                properties: { mobileOs },
+            return Object.entries(grouped).map(([phoneMake, count]) => ({
+                properties: { phoneMake },
                 count
             }));
         }
@@ -3814,15 +3851,7 @@
             if (!canvas) return;
             const ctx = canvas.getContext('2d');
             if (sdkPlatformChart) sdkPlatformChart.destroy();
-            let ios = 0, android = 0, web = 0;
-            data.forEach(d => {
-                const os = (d.properties?.mobileOs || '').toLowerCase();
-                const count = d.count || 0;
-                if (os === 'ios' || os === 'iphone' || os === 'ipad') ios += count;
-                else if (os === 'android') android += count;
-                else web += count;
-            });
-            const total = ios + android + web;
+            const { ios, android, web, total } = countPlatformFromPhoneMake(data);
             document.getElementById('sdkIosCount').textContent = ios.toLocaleString();
             document.getElementById('sdkAndroidCount').textContent = android.toLocaleString();
             document.getElementById('sdkWebCount').textContent = web.toLocaleString();
@@ -3908,24 +3937,7 @@
             
             if (platformChart) platformChart.destroy();
             
-            let ios = 0, android = 0, web = 0;
-            
-            data.forEach(d => {
-                const os = (d.properties?.mobileOs || '').toLowerCase();
-                const count = d.count || 0;
-                
-                if (os === 'ios' || os === 'iphone' || os === 'ipad') {
-                    ios += count;
-                } else if (os === 'android') {
-                    android += count;
-                } else if (os === 'web' || os === '') {
-                    web += count;
-                } else {
-                    web += count;
-                }
-            });
-            
-            const total = ios + android + web;
+            const { ios, android, web, total } = countPlatformFromPhoneMake(data);
             
             // Update legend
             document.getElementById('iosCount').textContent = ios.toLocaleString();
