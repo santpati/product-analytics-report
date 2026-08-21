@@ -326,6 +326,40 @@
             gap: 12px;
         }
         
+        .tile-report-links {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .tile-report-link {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 14px 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(0, 0, 0, 0.2);
+            color: #ffffff;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.25s;
+        }
+        
+        .tile-report-link:hover {
+            border-color: rgba(0, 188, 235, 0.4);
+            background: rgba(0, 188, 235, 0.08);
+            transform: translateX(4px);
+        }
+        
+        .tile-report-link span {
+            color: rgba(255, 255, 255, 0.55);
+            font-weight: 500;
+            font-size: 12px;
+        }
+        
         .tile-cta svg {
             width: 18px;
             height: 18px;
@@ -478,17 +512,23 @@
         <section class="tiles-section">
             <div class="tiles-grid">
                 <!-- Indoor Navigation Tile -->
-                <a href="/indoor-nav-report" class="tile indoor-nav">
+                <div class="tile indoor-nav">
                     <div class="tile-icon">🗺️</div>
                     <h2 class="tile-title">Indoor Navigation</h2>
                     <p class="tile-description">
-                        Get customer-specific product analytics for Indoor Navigation outcomes including QR scans, wayfinding journeys, POI interactions, and user engagement metrics.
+                        Get customer-specific product analytics for Indoor Navigation outcomes including QR scans, mobile app SDK sessions, wayfinding journeys, POI interactions, and user engagement metrics.
                     </p>
-                    <div class="tile-cta">
-                        View Analytics
-                        <svg viewBox="0 0 24 24"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/></svg>
+                    <div class="tile-report-links">
+                        <a href="/indoor-nav-report" class="tile-report-link">
+                            <div>Standard Navigation Report</div>
+                            <span>QR scan analytics →</span>
+                        </a>
+                        <a href="/indoor-nav-sdk-report" class="tile-report-link">
+                            <div>Navigation with SDK Report</div>
+                            <span>QR + mobile app SDK →</span>
+                        </a>
                     </div>
-                </a>
+                </div>
 
                 <!-- Space Explorer Tile -->
                 <a href="/space-explorer" class="tile space-explorer">

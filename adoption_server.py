@@ -127,6 +127,10 @@ class AdoptionHandler(http.server.SimpleHTTPRequestHandler):
             self.path = '/indoor_nav_report.html'
             return http.server.SimpleHTTPRequestHandler.do_GET(self)
         
+        if path == '/indoor-nav-sdk-report':
+            self.path = '/indoor_nav_sdk_report.html'
+            return http.server.SimpleHTTPRequestHandler.do_GET(self)
+        
         # Serve main page - root path
         if path == '/' or path == '/index.html':
             self.path = '/adoption_tracker.html'
